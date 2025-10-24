@@ -4,5 +4,25 @@
 
 {% block content %}
     <h2>Bem-vindo(a), Professor(a) {{ user.username }}!</h2>
-    <p>Este é o seu painel de controle. Em breve, suas turmas aparecerão aqui.</p>
+    <p>Abaixo estão as turmas pelas quais você é responsável.</p>
+
+    <hr>
+
+    <h3>Minhas Turmas</h3>
+    
+    {% if turmas %} <ul>
+            {% for turma in turmas %}
+                <li style="font-size: 1.2em; margin-bottom: 10px;">
+                    {{ turma.nome }} 
+                    
+                    <a href="#" style="margin-left: 20px;">
+                        Fazer Chamada
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>Você ainda não foi associado a nenhuma turma. Entre em contato com o administrador.</p>
+    {% endif %}
+
 {% endblock %}
