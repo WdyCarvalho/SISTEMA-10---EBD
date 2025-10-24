@@ -46,7 +46,7 @@ class RegistroChamadaAdmin(admin.ModelAdmin):
     # 3. Melhora a lista principal de registros
     list_display = ('aluno', 'chamada', 'pontos_ganhos')
     list_filter = ('chamada__turma', 'chamada__data') # Permite filtrar por turma ou data
-    
+# 
 # -----------------------------------------------------------------------------
 # Registros simples (sem customização por enquanto)
 # -----------------------------------------------------------------------------
