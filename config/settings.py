@@ -66,6 +66,9 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+
+                #ADICIONADO POR MIM:
+                'core.context_processors.permissoes_context',
             ],
         },
     },
@@ -131,7 +134,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # ... (no final do arquivo) ...
 
 # Para onde o Django redireciona após um login BEM-SUCEDIDO
-LOGIN_REDIRECT_URL = 'dashboard' # 'dashboard' é o 'name' que demos à nossa URL principal
+LOGIN_REDIRECT_URL = 'login_router' # 'dashboard' é o 'name' que demos à nossa URL principal
 
 # Para onde o Django redireciona após o usuário SAIR (logout)
 LOGOUT_REDIRECT_URL = 'login' # 'login' é o 'name' da nossa URL de login

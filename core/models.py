@@ -3,6 +3,9 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.db.models import Sum # Importamos o Sum para fazer somas
 
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
 # -----------------------------------------------------------------------------
 # MODELOS PRINCIPAIS (Turma, Aluno)
 # -----------------------------------------------------------------------------
@@ -29,6 +32,13 @@ class Turma(models.Model):
 
 
 class Aluno(models.Model):
+    user = models.OneToOneField(
+        User, 
+        on_delete=models.CASCADE, 
+        related_name='aluno', # Permite fazer request.user.aluno
+        null=True, 
+        blank=True
+    )
     nome_completo = models.CharField(max_length=255)
     turma = models.ForeignKey(
         Turma,
@@ -104,3 +114,93 @@ class RegistroChamada(models.Model):
         # 3. Atualizar o placar geral do aluno
         # Chamamos a função que recalcula o total a partir de todos os registros
         self.aluno.recalcular_pontos_totais()
+
+
+class PerfilProfessor(models.Model):
+    """
+    Armazena o placar total de pontos do professor.
+    É ligado ao Usuário (login) do professor.
+    """
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name='perfil_professor'
+    )
+    pontos_totais = models.IntegerField(default=0)
+
+    class Meta:
+        verbose_name = "Perfil de Professor"
+        verbose_name_plural = "Perfis de Professor"
+
+    def __str__(self):
+        return f"Perfil de {self.user.username}"
+    
+    def recalcular_pontos_totais(self):
+        """
+        Recalcula o total de pontos somando todos os registros de chamada.
+        """
+        total = self.registros_de_chamada.aggregate(total=Sum('pontos_ganhos'))['total']
+        self.pontos_totais = total or 0
+        self.save(update_fields=['pontos_totais'])
+
+# --- Função Bônus: Cria um Perfil automaticamente quando um User é salvo ---
+# Isso facilita nossa vida, pois não precisamos criar no admin manualmente
+@receiver(post_save, sender=User)
+def criar_ou_atualizar_perfil_professor(sender, instance, created, **kwargs):
+    """
+    Se um novo Usuário for criado, cria um PerfilProfessor para ele.
+    """
+    if created:
+        PerfilProfessor.objects.create(user=instance)
+    else:
+        # Se o usuário for salvo (mas não criado), apenas garante que o perfil exista
+        PerfilProfessor.objects.get_or_create(user=instance)
+
+
+# -----------------------------------------------------------------------------
+# MODELO 2: O REGISTRO DIÁRIO DA CHAMADA DO PROFESSOR
+# -----------------------------------------------------------------------------
+class RegistroChamadaProfessor(models.Model):
+    """
+    Armazena os critérios da chamada do professor para um dia específico.
+    """
+    chamada = models.OneToOneField(
+        Chamada,
+        on_delete=models.CASCADE,
+        related_name='registro_professor'
+    )
+    # O professor que fez a chamada (ligado ao perfil dele)
+    professor = models.ForeignKey(
+        PerfilProfessor,
+        on_delete=models.CASCADE,
+        related_name='registros_de_chamada'
+    )
+    
+    # Critérios de pontuação
+    presenca = models.BooleanField(default=False, verbose_name="Presença")
+    biblia = models.BooleanField(default=False, verbose_name="Bíblia")
+    revista = models.BooleanField(default=False, verbose_name="Revista")
+    oferta = models.BooleanField(default=False, verbose_name="Oferta")
+    convidado = models.BooleanField(default=False, verbose_name="Convidado")
+
+    pontos_ganhos = models.IntegerField(default=0)
+
+    def __str__(self):
+        return f"Registro Prof. {self.professor.user.username} - {self.chamada.data}"
+
+    def save(self, *args, **kwargs):
+        # 1. Calcula os pontos ganhos neste dia
+        pontos = 0
+        if self.presenca: pontos += 1
+        if self.biblia: pontos += 1
+        if self.revista: pontos += 1
+        if self.oferta: pontos += 1
+        if self.convidado: pontos += 1
+        
+        self.pontos_ganhos = pontos
+        
+        # 2. Salva o registro atual
+        super().save(*args, **kwargs)
+
+        # 3. Atualiza o placar geral do professor
+        self.professor.recalcular_pontos_totais()

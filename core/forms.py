@@ -1,6 +1,7 @@
 # core/forms.py
 from django import forms
-from .models import RegistroChamada
+
+from .models import RegistroChamada, RegistroChamadaProfessor
 
 class RegistroChamadaForm(forms.ModelForm):
     """
@@ -31,3 +32,13 @@ class RegistroChamadaForm(forms.ModelForm):
             'atividades': forms.CheckboxInput(attrs={'title': 'Atividades'}),
             'revista': forms.CheckboxInput(attrs={'title': 'Revista'}),
         }
+
+
+class RegistroChamadaProfessorForm(forms.ModelForm):
+    """
+    Este é o formulário para a chamada do professor.
+    """
+    class Meta:
+        model = RegistroChamadaProfessor
+        # Campos que o professor irá marcar
+        fields = ['presenca', 'biblia', 'revista', 'oferta', 'convidado']

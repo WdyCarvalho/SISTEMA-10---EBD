@@ -7,61 +7,92 @@
 
     <form method="get" action="">
         <label for="data">Selecione a Data:</label>
-        <input 
-            type="date" 
-            id="data" 
-            name="data" 
-            value="{{ data_selecionada_str }}">
+        <input type="date" id="data" name="data" value="{{ data_selecionada_str }}">
         <button type="submit">Buscar</button>
     </form>
 
     <hr>
 
+    <style>
+        .tab-nav { border-bottom: 2px solid #ccc; }
+        .tab-button { background: #f0f0f0; border: 1px solid #ccc; padding: 10px 15px; cursor: pointer; }
+        .tab-button.active { background: #fff; border-bottom-color: #fff; }
+        .tab-content { display: none; padding: 20px 0; }
+        .tab-content.active { display: block; }
+        /* (Estilos da tabela .chamada-table) */
+        .chamada-table { width: 100%; border-collapse: collapse; }
+        .chamada-table th, .chamada-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        .chamada-table th { background-color: #f2f2f2; }
+        .chamada-table td input[type="checkbox"] { width: 20px; height: 20px; }
+        /* Estilo do form professor */
+        .professor-form p { margin-bottom: 10px; font-size: 1.1em; }
+        .professor-form label { margin-left: 5px; }
+    </style>
+
+    <div class="tab-nav">
+        <button class="tab-button active" onclick="openTab('alunos')">Chamada de Alunos</button>
+        <button class="tab-button" onclick="openTab('professor')">Chamada do Professor</button>
+    </div>
+
     <form method="post">
         {% csrf_token %}
-        
-        {{ formset.management_form }}
 
-        <style>
-            /* CSS simples para a tabela de chamada */
-            .chamada-table { width: 100%; border-collapse: collapse; }
-            .chamada-table th, .chamada-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            .chamada-table th { background-color: #f2f2f2; }
-            .chamada-table td input[type="checkbox"] { width: 20px; height: 20px; }
-        </style>
-
-        <table class="chamada-table">
-            <thead>
-                <tr>
-                    <th>Aluno</th>
-                    {% if formset.forms %}
-                        {% for field in formset.forms.0 %}
-                            <th>{{ field.label }}</th>
-                        {% endfor %}
-                    {% endif %}
-                </tr>
-            </thead>
-            <tbody>
-                {% for form in formset %}
+        <div id="alunos" class="tab-content active">
+            <h3>Alunos da Turma</h3>
+            {{ formset_alunos.management_form }} <table class="chamada-table">
+                <thead>
                     <tr>
-                        <td>
-                            {{ form.instance.aluno.nome_completo }}
-                        </td>
-                        
-                        {% for field in form %}
-                            <td>
-                                {{ field }}
-                            </td>
-                        {% endfor %}
+                        <th>Aluno</th>
+                        {% if formset_alunos.forms %}
+                            {% for field in formset_alunos.forms.0 %}
+                                <th>{{ field.label }}</th>
+                            {% endfor %}
+                        {% endif %}
                     </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    {% for form in formset_alunos %}
+                        <tr>
+                            <td>{{ form.instance.aluno.nome_completo }}</td>
+                            {% for field in form %}
+                                <td>{{ field }}</td>
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
 
+        <div id="professor" class="tab-content">
+            <h3>Registro do Professor: {{ request.user.username }}</h3>
+            <div class="professor-form">
+                {{ form_professor.as_p }}
+            </div>
+        </div>
+        
         <br>
         <button type="submit" style="font-size: 1.2em; padding: 10px;">
-            Salvar Chamada
+            Salvar Chamada (Alunos e Professor)
         </button>
     </form>
 
+    <script>
+        function openTab(tabName) {
+            // Esconde todos os conteúdos
+            var contents = document.getElementsByClassName('tab-content');
+            for (var i = 0; i < contents.length; i++) {
+                contents[i].style.display = 'none';
+                contents[i].classList.remove('active');
+            }
+            // Remove 'active' de todos os botões
+            var buttons = document.getElementsByClassName('tab-button');
+            for (var i = 0; i < buttons.length; i++) {
+                buttons[i].classList.remove('active');
+            }
+            // Mostra o conteúdo da aba clicada e ativa o botão
+            document.getElementById(tabName).style.display = 'block';
+            document.getElementById(tabName).classList.add('active');
+            event.currentTarget.classList.add('active');
+        }
+    </script>
 {% endblock %}

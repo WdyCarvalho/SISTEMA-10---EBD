@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block title %}Ranking da Turma: {{ turma.nome }}{% endblock %}
+
+{% block content %}
+    <h2>Ranking da Turma: {{ turma.nome }}</h2>
+    <p>Lista de alunos da turma, ordenados por pontuação total.</p>
+
+    <style>
+        .ranking-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .ranking-table th, .ranking-table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        .ranking-table th {
+            background-color: #f2f2f2;
+        }
+        .ranking-table tr:nth-child(even) { background-color: #f9f9f9; }
+        .ranking-table .posicao { width: 50px; text-align: center; font-weight: bold; }
+        .ranking-table .pontos { width: 100px; text-align: right; font-weight: bold; }
+    </style>
+
+    <table class="ranking-table">
+        <thead>
+            <tr>
+                <th class="posicao">#</th>
+                <th>Nome do Aluno</th>
+                <th class="pontos">Pontos</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for aluno in ranking_alunos_turma %}
+                <tr>
+                    <td class="posicao">{{ forloop.counter }}</td>
+                    <td>{{ aluno.nome_completo }}</td>
+                    <td class="pontos">{{ aluno.pontos_totais }} pts</td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="3">Nenhum aluno encontrado nesta turma.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+{% endblock %}

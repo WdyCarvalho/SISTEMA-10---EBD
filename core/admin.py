@@ -2,53 +2,60 @@
 from django.contrib import admin
 from .models import Turma, Aluno, Chamada, RegistroChamada
 
+from .models import PerfilProfessor, RegistroChamadaProfessor
+
 # -----------------------------------------------------------------------------
 # Classe para melhorar a exibição de ALUNO no Admin
+# (Esta é a versão mais recente que corrige o problema do campo "User")
 # -----------------------------------------------------------------------------
 @admin.register(Aluno)
 class AlunoAdmin(admin.ModelAdmin):
-    # Quais colunas mostrar na lista de alunos
-    list_display = ('nome_completo', 'turma', 'pontos_totais') 
+    # O que mostrar na LISTA de alunos
+    list_display = ('nome_completo', 'turma', 'pontos_totais', 'user')
     
-    # Adiciona um filtro lateral para filtrar por turma
-    list_filter = ('turma',) 
+    # O que mostrar no FORMULÁRIO de edição
+    # O campo 'user' está aqui
+    fields = ('user', 'nome_completo', 'turma', 'pontos_totais')
     
-    # Adiciona uma barra de busca
-    search_fields = ('nome_completo',) 
+    # 'pontos_totais' é "apenas leitura"
+    readonly_fields = ('pontos_totais',)
     
-    # Ordena por nome por padrão
+    list_filter = ('turma',)
+    search_fields = ('nome_completo', 'user__username') 
     ordering = ('nome_completo',)
 
 # -----------------------------------------------------------------------------
 # Classe para melhorar a exibição de REGISTRO DE CHAMADA no Admin
+# (Esta é a versão que fizemos na Etapa 4 e 5)
 # -----------------------------------------------------------------------------
 @admin.register(RegistroChamada)
 class RegistroChamadaAdmin(admin.ModelAdmin):
-    # 1. Define os campos que aparecerão no formulário de "Adicionar"
-    # Esta é a correção para o seu problema!
+    # 1. Define os campos que aparecerão no formulário
     fields = (
         'chamada', 
         'aluno', 
-        'presenca',
-        'revista',
+        'presenca', 
         'biblia', 
         'versiculo', 
         'convidado', 
         'oferta', 
         'atividades',
-        'pontos_ganhos' # Vamos mostrar, mas tornar readonly
+        'revista', # Adicionado na Etapa 5
+        'pontos_ganhos'
     )
     
-    # 2. Torna o campo 'pontos_ganhos' apenas leitura, 
-    # pois ele é calculado automaticamente
+    # 2. 'pontos_ganhos' é "apenas leitura"
     readonly_fields = ('pontos_ganhos',) 
 
     # 3. Melhora a lista principal de registros
     list_display = ('aluno', 'chamada', 'pontos_ganhos')
-    list_filter = ('chamada__turma', 'chamada__data') # Permite filtrar por turma ou data
-# 
+    list_filter = ('chamada__turma', 'chamada__data')
+
 # -----------------------------------------------------------------------------
-# Registros simples (sem customização por enquanto)
+# Registros simples (modelos que não precisam de customização)
 # -----------------------------------------------------------------------------
 admin.site.register(Turma)
 admin.site.register(Chamada)
+
+admin.site.register(PerfilProfessor)
+admin.site.register(RegistroChamadaProfessor)

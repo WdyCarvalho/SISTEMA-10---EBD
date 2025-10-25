@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block title %}Relatórios e Rankings{% endblock %}
+
+{% block content %}
+    <h2>Relatórios e Rankings Gerais</h2>
+
+    <style>
+        .rankings-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .ranking-box {
+            flex: 1;
+            min-width: 250px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border: 1px solid #eee;
+            border-radius: 8px;
+        }
+        .ranking-box h3 {
+            margin-top: 0;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 5px;
+        }
+        .ranking-box ol {
+            padding-left: 20px;
+        }
+        .ranking-box li {
+            font-size: 1.1em;
+            margin-bottom: 8px;
+        }
+        .ranking-box span {
+            font-weight: bold;
+            color: #333;
+        }
+    </style>
+
+    <div class="rankings-container">
+        
+        <div class="ranking-box">
+            <h3>Ranking Geral de Alunos (Top 20)</h3>
+            <ol>
+                {% for aluno in ranking_alunos_geral %}
+                    <li>
+                        {{ aluno.nome_completo }} 
+                        
+                        {% if aluno.turma %}
+                            ({{ aluno.turma.nome }})
+                        {% else %}
+                            (Sem turma)
+                        {% endif %}
+                        
+                        - <span>{{ aluno.pontos_totais }} pts</span>
+                    </li>
+                {% empty %}
+                    <li>Nenhum aluno com pontuação.</li>
+                {% endfor %}
+            </ol>
+        </div>
+
+        <div class="ranking-box">
+            <h3>Ranking Geral de Turmas</h3>
+            <ol>
+                {% for turma in ranking_turmas_geral %}
+                    <li>{{ turma.nome }} - <span>{{ turma.pontos_da_turma }} pts</span></li>
+                {% empty %}
+                    <li>Nenhuma turma com pontuação.</li>
+                {% endfor %}
+            </ol>
+        </div>
+
+        <div class="ranking-box">
+            <h3>Ranking Geral de Professores</h3>
+            <ol>
+                {% for perfil in ranking_professores %}
+                    <li>Prof. {{ perfil.user.username }} - <span>{{ perfil.pontos_totais }} pts</span></li>
+                {% empty %}
+                    <li>Nenhum professor com pontuação.</li>
+                {% endfor %}
+            </ol>
+        </div>
+
+    </div>
+
+{% endblock %}
