@@ -64,13 +64,20 @@
         </div>
 
         <div id="professor" class="tab-content">
-            <h3>Registro do Professor: {{ request.user.username }}</h3>
-            <div class="professor-form">
-                {{ form_professor.as_p }}
-            </div>
+            
+            {% if professor_titular %}
+                <h3>Registro do Professor: {{ professor_titular.username }}</h3>
+                <div class="professor-form">
+                    {{ form_professor.as_p }}
+                </div>
+            {% else %}
+                <h3>Aviso</h3>
+                <p>Esta turma não possui um professor titular associado.</p>
+            {% endif %}
         </div>
         
         <br>
+        
         <button type="submit" style="font-size: 1.2em; padding: 10px;">
             Salvar Chamada (Alunos e Professor)
         </button>

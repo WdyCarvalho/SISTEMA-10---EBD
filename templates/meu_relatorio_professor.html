@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block title %}Meu Relatório (Professor){% endblock %}
+
+{% block content %}
+    <h2>Relatório Pessoal do Professor: {{ professor.username }}</h2>
+
+    <style>
+        .rankings-container { display: flex; flex-wrap: wrap; gap: 20px; }
+        .ranking-box { flex: 1; min-width: 250px; padding: 15px; background-color: #f9f9f9; border: 1px solid #eee; border-radius: 8px; }
+        .ranking-box h3 { margin-top: 0; }
+        .ranking-box li { list-style: none; font-size: 1.2em; margin-bottom: 5px; }
+        .ranking-box span { font-weight: bold; }
+        .chamada-table { width: 100%; border-collapse: collapse; margin-top: 20px;}
+        .chamada-table th, .chamada-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        .chamada-table th { background-color: #f2f2f2; }
+    </style>
+
+    <div class="rankings-container">
+        <div class="ranking-box">
+            <h3>Resumo</h3>
+            <ul>
+                <li><span>Pontos Totais:</span> {{ pontos_totais }}</li>
+                <li><span>Total de Presenças:</span> {{ presencas }}</li>
+                <li><span>Total de Faltas:</span> {{ faltas }}</li>
+            </ul>
+        </div>
+    </div>
+
+    <h3>Histórico de Chamadas</h3>
+    <table class="chamada-table">
+        <thead>
+            <tr>
+                <th>Data da Chamada</th>
+                <th>Presença</th>
+                <th>Bíblia</th>
+                <th>Revista</th>
+                <th>Oferta</th>
+                <th>Convidado</th>
+                <th>Pontos no Dia</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for registro in registros %}
+                <tr>
+                    <td>{{ registro.chamada.data|date:"d/m/Y" }} (Turma: {{ registro.chamada.turma.nome }})</td>
+                    <td>{% if registro.presenca %}Sim{% else %}Não{% endif %}</td>
+                    <td>{% if registro.biblia %}Sim{% else %}-{% endif %}</td>
+                    <td>{% if registro.revista %}Sim{% else %}-{% endif %}</td>
+                    <td>{% if registro.oferta %}Sim{% else %}-{% endif %}</td>
+                    <td>{% if registro.convidado %}Sim{% else %}-{% endif %}</td>
+                    <td><strong>{{ registro.pontos_ganhos }}</strong></td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="7">Nenhum registro encontrado.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

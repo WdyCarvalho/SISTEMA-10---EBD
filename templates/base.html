@@ -18,23 +18,20 @@
         <h1>Sistema de Chamada EBD</h1>
         {% if user.is_authenticated %}
             
-            {% if is_professor %}
-                <a href="{% url 'dashboard' %}">Minhas Turmas</a>
+            {% if is_supervisor %}
                 <a href="{% url 'relatorios' %}">Relatórios Gerais</a>
+                {% if is_professor %}
+                    <a href="{% url 'dashboard' %}">Minhas Turmas</a>
+                {% endif %}
+            
+            {% elif is_professor %}
+                <a href="{% url 'dashboard' %}">Minhas Turmas</a>
+                <a href="{% url 'meu_relatorio_professor' %}">Meu Relatório</a>
             
             {% elif is_aluno %}
                 <a href="{% url 'meu_relatorio' %}">Meu Relatório</a>
-                <a href="{% url 'relatorios' %}">Relatórios Gerais</a>
-                {% if aluno_global.turma %}
-                    <a href="{% url 'detalhes_turma' aluno_global.turma.id %}">Ranking da Minha Turma</a>
-                {% endif %}
-                
-                
             
-            {% else %}
-                <a href="{% url 'relatorios' %}">Relatórios</a>
             {% endif %}
-
             <form method="post" action="{% url 'logout' %}" style="display: inline; margin-left: 15px;">
                 {% csrf_token %}
                 <button type="submit" style="background: none; border: none; color: white; text-decoration: underline; cursor: pointer; font-size: 1em; padding: 0;">

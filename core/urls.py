@@ -22,4 +22,8 @@ urlpatterns = [
     path('roteador/', views.login_router, name='login_router'),
 
     path('turma/<int:turma_id>/detalhes/', views.detalhes_turma, name='detalhes_turma'),
+
+    path('meu-relatorio/professor/', views.meu_relatorio_professor, name='meu_relatorio_professor'),
+
+    path('aluno/<int:aluno_id>/relatorio/', views.relatorio_aluno_individual, name='relatorio_aluno_individual'),
 ]

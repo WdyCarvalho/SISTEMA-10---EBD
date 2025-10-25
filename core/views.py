@@ -1,17 +1,22 @@
 # core/views.py
+
 from django.http import HttpResponseForbidden
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.forms import modelformset_factory # Importamos o "criador de super-formulários"
-from django.db.models import Sum
+from django.db.models import Sum, Avg, Count
 from .models import Turma, Aluno, Chamada, RegistroChamada, User, PerfilProfessor, RegistroChamadaProfessor
 from .forms import RegistroChamadaForm, RegistroChamadaProfessorForm
 from datetime import date # Para pegar a data de hoje
 from .context_processors import permissoes_context # Importe a função que criamos
 
-# Mantenha a view 'dashboard' que já existe
-@login_required
+@login_required 
 def dashboard(request):
+    permissores = permissoes_context(request)
+    # SEGURANÇA: Só Professores
+    if not permissores['is_professor']:
+        return HttpResponseForbidden("<h1>Acesso Negado</h1><p>Esta página é apenas para professores.</p>")
+
     turmas_do_professor = Turma.objects.filter(professor=request.user).order_by('nome')
     contexto = {
         'usuario': request.user,
@@ -21,114 +26,150 @@ def dashboard(request):
 
 
 # --- NOSSA NOVA VIEW ---
+# core/views.py
+
 @login_required
 def pagina_chamada(request, turma_id):
     """
-    Esta view controla a página "Fazer Chamada" (Etapa 7 Revisada).
-    Agora ela lida com DOIS formulários:
-    1. O FormSet de Alunos
-    2. O Form normal do Professor
+    (ETAPA 12 - ATUALIZADA)
+    Controla a página "Fazer Chamada".
+    Acesso: Supervisor (qualquer turma) ou Professor (apenas sua turma).
+    Permite ao Supervisor pontuar o professor titular da turma.
     """
-    # 1. SEGURANÇA E LÓGICA DE DATA (Igual antes)
-    turma = get_object_or_404(Turma, id=turma_id, professor=request.user)
+    permissores = permissoes_context(request)
+    
+    # 1. Busca a Turma
+    turma = get_object_or_404(Turma, id=turma_id)
+
+    # --- INÍCIO DA ATUALIZAÇÃO DE SEGURANÇA ---
+    acesso_permitido = False
+    
+    if permissores['is_supervisor']:
+        acesso_permitido = True
+    elif permissores['is_professor'] and turma.professor == request.user:
+        acesso_permitido = True
+        
+    if not acesso_permitido:
+        return HttpResponseForbidden("<h1>Acesso Negado</h1><p>Você não tem permissão para fazer a chamada desta turma.</p>")
+    # --- FIM DA ATUALIZAÇÃO DE SEGURANÇA ---
+
+    # 2. LÓGICA DE DATA (Igual antes)
     data_selecionada_str = request.GET.get('data', date.today().isoformat())
     data_selecionada = date.fromisoformat(data_selecionada_str)
 
-    # 2. PEGAR/CRIAR OBJETOS (Igual antes)
+    # 3. PEGAR/CRIAR CHAMADA (Igual antes)
     chamada, _ = Chamada.objects.get_or_create(
         turma=turma, 
         data=data_selecionada,
-        defaults={'criado_por': request.user}
+        defaults={'criado_por': request.user} # Registra quem criou (o supervisor ou o prof)
     )
 
-    # 3. GARANTIR REGISTROS DE ALUNOS (Igual antes)
+    # 4. GARANTIR REGISTROS DE ALUNOS (Igual antes)
     alunos_da_turma = turma.alunos.all().order_by('nome_completo')
     for aluno in alunos_da_turma:
-        RegistroChamada.objects.get_or_create(
-            chamada=chamada, 
-            aluno=aluno
-        )
+        RegistroChamada.objects.get_or_create(chamada=chamada, aluno=aluno)
     
-    # --- 4. NOVO: GARANTIR REGISTRO DO PROFESSOR ---
-    # Precisamos do Perfil do professor (que foi criado automaticamente)
-    perfil_professor = request.user.perfil_professor
-    registro_professor, _ = RegistroChamadaProfessor.objects.get_or_create(
-        chamada=chamada,
-        professor=perfil_professor
-    )
+    # --- 5. ATUALIZAÇÃO: GARANTIR REGISTRO DO PROFESSOR TITULAR ---
+    registro_professor = None
+    form_professor = None
+    professor_titular = turma.professor # Pega o professor associado à turma
+    
+    if professor_titular: # Só faz a chamada do prof se a turma tiver um
+        try:
+            # Pega o perfil do professor titular (NÃO do request.user)
+            perfil_professor = professor_titular.perfil_professor 
+            registro_professor, _ = RegistroChamadaProfessor.objects.get_or_create(
+                chamada=chamada,
+                professor=perfil_professor
+            )
+        except PerfilProfessor.DoesNotExist:
+            professor_titular = None # Zera se o perfil não existir
+    
+    # 6. CRIAR O FORMSET DE ALUNOS (Igual antes)
+    RegistroChamadaFormSet = modelformset_factory(RegistroChamada, form=RegistroChamadaForm, extra=0)
 
-    # 5. CRIAR O FORMSET DE ALUNOS (Igual antes)
-    RegistroChamadaFormSet = modelformset_factory(
-        RegistroChamada, 
-        form=RegistroChamadaForm, 
-        extra=0
-    )
-
-    # 6. PROCESSAR OS FORMULÁRIOS (SALVAR)
+    # 7. PROCESSAR OS FORMULÁRIOS (SALVAR)
     if request.method == 'POST':
-        # Instancia o FormSet de Alunos com os dados do POST
         queryset_alunos = RegistroChamada.objects.filter(chamada=chamada)
-        formset_alunos = RegistroChamadaFormSet(request.POST, queryset=queryset_alunos, prefix='alunos') # Adicionamos um prefixo
-
-        # --- NOVO: Instancia o Form do Professor com os dados do POST ---
-        form_professor = RegistroChamadaProfessorForm(request.POST, instance=registro_professor, prefix='professor') # Adicionamos um prefixo
+        formset_alunos = RegistroChamadaFormSet(request.POST, queryset=queryset_alunos, prefix='alunos')
         
-        # Valida AMBOS
-        if formset_alunos.is_valid() and form_professor.is_valid():
-            formset_alunos.save() # Salva todos os registros de alunos
-            form_professor.save() # Salva o registro do professor
+        # Processa o form do professor apenas se ele existir
+        if professor_titular:
+            form_professor = RegistroChamadaProfessorForm(request.POST, instance=registro_professor, prefix='professor')
             
-            # (Nossa lógica de pontos nos models.py será ativada aqui)
-            return redirect('dashboard') 
+            if formset_alunos.is_valid() and form_professor.is_valid():
+                formset_alunos.save()
+                form_professor.save()
+                return redirect('dashboard' if permissores['is_professor'] else 'relatorios')
+        else:
+            # Se não houver professor, só valida os alunos
+            if formset_alunos.is_valid():
+                formset_alunos.save()
+                return redirect('dashboard' if permissores['is_professor'] else 'relatorios')
     
-    # 7. EXIBIR OS FORMULÁRIOS (CARREGAMENTO INICIAL)
+    # 8. EXIBIR OS FORMULÁRIOS (CARREGAMENTO INICIAL)
     else:
-        # FormSet de Alunos (Igual antes)
         queryset_alunos = RegistroChamada.objects.filter(chamada=chamada).select_related('aluno').order_by('aluno__nome_completo')
         formset_alunos = RegistroChamadaFormSet(queryset=queryset_alunos, prefix='alunos')
-
-        # --- NOVO: Form do Professor ---
-        form_professor = RegistroChamadaProfessorForm(instance=registro_professor, prefix='professor')
+        
+        # Cria o form do professor apenas se ele existir
+        if professor_titular:
+            form_professor = RegistroChamadaProfessorForm(instance=registro_professor, prefix='professor')
 
     # 8. ENVIAR TUDO PARA O TEMPLATE
     contexto = {
         'turma': turma,
-        'formset_alunos': formset_alunos, # Mudamos o nome da variável
-        'form_professor': form_professor, # Nova variável
+        'professor_titular': professor_titular, # Envia o prof. da turma para o template
+        'formset_alunos': formset_alunos,
+        'form_professor': form_professor, # Pode ser None
         'data_selecionada_str': data_selecionada_str,
     }
     return render(request, 'chamada.html', contexto)
 
+# core/views.py
+
 @login_required
 def pagina_relatorios(request):
     """
-    Esta view gera os dados para os 3 rankings gerais.
-    AGORA, TODOS OS USUÁRIOS LOGADOS PODEM VER TODOS OS RANKINGS.
+    (ETAPA 12 - ATUALIZADA)
+    Esta é a view "Hub" do Supervisor.
+    Mostra os 3 rankings gerais E listas de gerenciamento.
     """
+    permissores = permissoes_context(request)
+    if not permissores['is_supervisor']:
+        return HttpResponseForbidden("<h1>Acesso Negado</h1><p>Esta página é apenas para supervisores.</p>")
 
-    # 1. Ranking Geral de Alunos (Limitado aos 20 primeiros)
+    # 1. Ranking Geral de Alunos (Igual antes)
     ranking_alunos_geral = Aluno.objects.all().order_by('-pontos_totais')[:20]
 
-    # 2. Ranking Geral de Turmas
+    # 2. Ranking Geral de Turmas (Igual antes)
     ranking_turmas_geral = Turma.objects.annotate(
-        pontos_da_turma=Sum('alunos__pontos_totais')
+        pontuacao_media=Avg('alunos__pontos_totais')
     ).filter(
-        pontos_da_turma__gt=0
-    ).order_by('-pontos_da_turma')
+        pontuacao_media__gt=0
+    ).order_by('-pontuacao_media')
 
-    # 3. Ranking Geral de Professores
+    # 3. Ranking Geral de Professores (Igual antes)
     ranking_professores = PerfilProfessor.objects.select_related('user').filter(
         pontos_totais__gt=0
     ).order_by(
         '-pontos_totais'
     )
+    
+    # --- NOVAS LISTAS PARA GERENCIAMENTO ---
+    # 4. Lista de todas as Turmas
+    lista_todas_turmas = Turma.objects.select_related('professor').all().order_by('nome')
+    
+    # 5. Lista de todos os Alunos
+    lista_todos_alunos = Aluno.objects.select_related('turma').all().order_by('nome_completo')
+    # --- FIM DAS NOVAS LISTAS ---
 
     contexto = {
         'ranking_alunos_geral': ranking_alunos_geral,
         'ranking_turmas_geral': ranking_turmas_geral,
         'ranking_professores': ranking_professores,
-        # Não precisamos mais passar 'is_professor' daqui, 
-        # pois o context_processor já faz isso globalmente.
+        'lista_todas_turmas': lista_todas_turmas, # Novo
+        'lista_todos_alunos': lista_todos_alunos, # Novo
     }
     
     return render(request, 'relatorios.html', contexto)
@@ -137,14 +178,25 @@ def pagina_relatorios(request):
 @login_required
 def meu_relatorio(request):
     """
+    (ETAPA 11.4 - PONTO 5 - VERSÃO COMPLETA)
     Esta view mostra o relatório pessoal do aluno logado.
+    Agora é trancada apenas para Alunos.
     """
-    # Se o usuário não for um aluno (ex: é professor),
-    # redirecionamos para o dashboard de professor.
-    if not hasattr(request.user, 'aluno'):
-        return redirect('dashboard')
-
-    aluno = request.user.aluno
+    
+    # --- INÍCIO DA ATUALIZAÇÃO (SEGURANÇA) ---
+    permissores = permissoes_context(request)
+    
+    # SEGURANÇA: Só Alunos podem acessar
+    if not permissores['is_aluno']:
+        return HttpResponseForbidden("<h1>Acesso Negado</h1><p>Esta página é apenas para alunos.</p>")
+    
+    # Tenta pegar o perfil do aluno logado
+    try:
+        aluno = request.user.aluno
+    except Aluno.DoesNotExist:
+        # Se o usuário não estiver linkado a um perfil 'Aluno', nega o acesso.
+        return HttpResponseForbidden("<h1>Erro</h1><p>Seu usuário não está vinculado a um perfil de aluno.</p>")
+    # --- FIM DA ATUALIZAÇÃO (SEGURANÇA) ---
     
     # Busca todos os registros do aluno, ordenados por data
     registros = RegistroChamada.objects.filter(aluno=aluno).order_by('-chamada__data')
@@ -166,39 +218,55 @@ def meu_relatorio(request):
 @login_required
 def login_router(request):
     """
-    Redireciona o usuário para o dashboard correto (Professor ou Aluno)
-    após o login.
+    (ETAPA 11)
+    Redireciona o usuário para o dashboard correto (Supervisor, Professor ou Aluno).
     """
-    permissoes = permissoes_context(request) # Pega o dict de permissões
+    permissoes = permissoes_context(request) 
 
-    if permissoes['is_professor']:
-        return redirect('dashboard') # Redireciona Professor
-    elif permissoes['is_aluno']:
-        return redirect('meu_relatorio') # Redireciona Aluno
-    else:
-        # Se for um superusuário sem grupo (ou outro tipo)
+    # 1. Supervisor é enviado para os relatórios gerais
+    if permissoes['is_supervisor']:
         return redirect('relatorios')
+    
+    # 2. Professor é enviado para suas turmas
+    elif permissoes['is_professor']:
+        return redirect('dashboard')
+    
+    # 3. Aluno é enviado para seu relatório pessoal
+    elif permissoes['is_aluno']:
+        return redirect('meu_relatorio')
+    
+    else:
+        # Se não for nada, desloga (ou manda para o login)
+        return redirect('login')
+
+# core/views.py
 
 @login_required
 def detalhes_turma(request, turma_id):
     """
-    Mostra o ranking de alunos para uma turma específica.
-    Controla a permissão de Professores e Alunos.
+    (ETAPA 12 - ATUALIZADA)
+    Mostra o ranking de alunos para uma turma.
+    Acesso: Supervisor (qualquer turma) ou Professor (apenas sua turma).
     """
+    permissores = permissoes_context(request)
     turma = get_object_or_404(Turma, id=turma_id)
-    permissoes = permissoes_context(request)
     
+    # --- INÍCIO DA ATUALIZAÇÃO DE SEGURANÇA ---
     acesso_permitido = False
     
-    if permissoes['is_professor'] and turma.professor == request.user:
+    # Supervisores podem ver qualquer turma
+    if permissores['is_supervisor']:
+        acesso_permitido = True
+    
+    # Professores podem ver (apenas) suas próprias turmas
+    elif permissores['is_professor'] and turma.professor == request.user:
         acesso_permitido = True
         
-    if permissoes['is_aluno'] and request.user.aluno.turma == turma:
-        acesso_permitido = True
-
     if not acesso_permitido:
-        return HttpResponseForbidden("<h1>Acesso Negado</h1><p>Você não tem permissão para ver esta turma.</p>") 
+        return HttpResponseForbidden("<h1>Acesso Negado</h1><p>Você não tem permissão para ver esta turma.</p>")
+    # --- FIM DA ATUALIZAÇÃO DE SEGURANÇA ---
 
+    # Se o acesso for permitido, busca os alunos
     ranking_alunos_turma = Aluno.objects.filter(turma=turma).order_by('-pontos_totais')
     
     contexto = {
@@ -207,3 +275,68 @@ def detalhes_turma(request, turma_id):
     }
     
     return render(request, 'detalhes_turma.html', contexto)
+
+
+
+@login_required
+def meu_relatorio_professor(request):
+    """
+    (NOVA ETAPA 11)
+    Esta view mostra o relatório pessoal do PROFESSOR logado.
+    """
+    permissoes = permissoes_context(request)
+    
+    # 1. SEGURANÇA: Só pode ser acessado por professores
+    if not permissoes['is_professor']:
+        return HttpResponseForbidden("<h1>Acesso Negado</h1><p>Esta página é apenas para professores.</p>")
+
+    # 2. Busca o perfil e os registros
+    try:
+        perfil = request.user.perfil_professor
+        registros = RegistroChamadaProfessor.objects.filter(professor=perfil).order_by('-chamada__data')
+    except PerfilProfessor.DoesNotExist:
+        return HttpResponseForbidden("<h1>Erro</h1><p>Seu perfil de professor não foi encontrado.</p>")
+    
+    # 3. Calcula estatísticas
+    faltas = registros.filter(presenca=False).count()
+    presencas = registros.filter(presenca=True).count()
+    
+    contexto = {
+        'professor': request.user,
+        'registros': registros,
+        'faltas': faltas,
+        'presencas': presencas,
+        'pontos_totais': perfil.pontos_totais
+    }
+    return render(request, 'meu_relatorio_professor.html', contexto)
+
+@login_required
+def relatorio_aluno_individual(request, aluno_id):
+    """
+    (NOVA ETAPA 12)
+    Mostra o relatório de um aluno específico.
+    Acessível apenas por Supervisores.
+    """
+    permissores = permissoes_context(request)
+    
+    # SEGURANÇA: Só Supervisores
+    if not permissores['is_supervisor']:
+        return HttpResponseForbidden("<h1>Acesso Negado</h1><p>Apenas supervisores podem ver este relatório.</p>")
+
+    # Busca o aluno pelo ID da URL
+    aluno = get_object_or_404(Aluno, id=aluno_id)
+    
+    # O resto da lógica é igual ao 'meu_relatorio'
+    registros = RegistroChamada.objects.filter(aluno=aluno).order_by('-chamada__data')
+    faltas = registros.filter(presenca=False).count()
+    presencas = registros.filter(presenca=True).count()
+    
+    contexto = {
+        'aluno': aluno,
+        'registros': registros,
+        'faltas': faltas,
+        'presencas': presencas,
+        'pontos_totais': aluno.pontos_totais
+    }
+    # Reutiliza o template do aluno
+    return render(request, 'meu_relatorio.html', contexto)

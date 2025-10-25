@@ -24,11 +24,24 @@ class Turma(models.Model):
         return f"Turma: {self.nome}"
 
     @property
-    def pontos_totais_turma(self):
-        """Calcula o total de pontos de todos os alunos da turma."""
-        # 'self.alunos' é o related_name que definimos no modelo Aluno
-        total = self.alunos.aggregate(total_pontos=Sum('pontos_totais'))['total_pontos']
-        return total or 0
+    def pontuacao_media_turma(self):
+        """Calcula a pontuação MÉDIA da turma."""
+
+        # Usamos aggregate para pegar a Soma e a Contagem
+        dados = self.alunos.aggregate(
+            total_pontos=Sum('pontos_totais'),
+            num_alunos=Count('id')
+        )
+
+        total_pontos = dados['total_pontos'] or 0
+        num_alunos = dados['num_alunos'] or 0
+
+        # Evita erro de divisão por zero se a turma não tiver alunos
+        if num_alunos == 0:
+            return 0
+
+        # Retorna a média
+        return total_pontos / num_alunos
 
 
 class Aluno(models.Model):
