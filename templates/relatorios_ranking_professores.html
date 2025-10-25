@@ -2,17 +2,36 @@
 {% block title %}Ranking de Professores{% endblock %}
 {% block content %}
     <h2>Ranking Geral de Professores</h2>
+
     <style>
-        /* (Cole o estilo do .ranking-box aqui) */
-        .ranking-box { padding: 15px; background-color: #f9f9f9; border: 1px solid #eee; border-radius: 8px; }
-        .ranking-box ol { padding-left: 20px; } .ranking-box li { font-size: 1.1em; margin-bottom: 8px; }
-        .ranking-box span { font-weight: bold; }
+        .admin-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        .admin-table th, .admin-table td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        .admin-table th { background-color: #f2f2f2; }
+        .admin-table tr:nth-child(even) { background-color: #f9f9f9; }
+        .admin-table .posicao { width: 50px; text-align: center; font-weight: bold; }
+        .admin-table .pontos { width: 100px; text-align: right; font-weight: bold; }
     </style>
-    <div class="ranking-box">
-        <ol>
+
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th class="posicao">#</th>
+                <th>Professor</th>
+                <th class="pontos">Pontos</th>
+            </tr>
+        </thead>
+        <tbody>
             {% for perfil in ranking_professores %}
-                <li>Prof. {{ perfil.user.username }} - <span>{{ perfil.pontos_totais }} pts</span></li>
-            {% empty %} <li>Nenhum professor com pontuação.</li> {% endfor %}
-        </ol>
-    </div>
+            <tr>
+                <td class="posicao">{{ forloop.counter }}</td>
+                <td>{{ perfil.user.username }}</td>
+                <td class="pontos">{{ perfil.pontos_totais }} pts</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="3">Nenhum professor com pontuação.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 {% endblock %}

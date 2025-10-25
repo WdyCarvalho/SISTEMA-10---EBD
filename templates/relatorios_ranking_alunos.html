@@ -2,21 +2,38 @@
 {% block title %}Ranking de Alunos{% endblock %}
 {% block content %}
     <h2>Ranking Geral de Alunos (Top 20)</h2>
+    
     <style>
-        /* (Cole o estilo do .ranking-box aqui) */
-        .ranking-box { padding: 15px; background-color: #f9f9f9; border: 1px solid #eee; border-radius: 8px; }
-        .ranking-box ol { padding-left: 20px; } .ranking-box li { font-size: 1.1em; margin-bottom: 8px; }
-        .ranking-box span { font-weight: bold; }
+        .admin-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        .admin-table th, .admin-table td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        .admin-table th { background-color: #f2f2f2; }
+        .admin-table tr:nth-child(even) { background-color: #f9f9f9; }
+        .admin-table .posicao { width: 50px; text-align: center; font-weight: bold; }
+        .admin-table .pontos { width: 100px; text-align: right; font-weight: bold; }
     </style>
-    <div class="ranking-box">
-        <ol>
+
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th class="posicao">#</th>
+                <th>Aluno</th>
+                <th>Turma</th>
+                <th class="pontos">Pontos</th>
+            </tr>
+        </thead>
+        <tbody>
             {% for aluno in ranking_alunos_geral %}
-                <li>
-                    {{ aluno.nome_completo }} 
-                    {% if aluno.turma %} ({{ aluno.turma.nome }}) {% else %} (Sem turma) {% endif %}
-                    - <span>{{ aluno.pontos_totais }} pts</span>
-                </li>
-            {% empty %} <li>Nenhum aluno com pontuação.</li> {% endfor %}
-        </ol>
-    </div>
+            <tr>
+                <td class="posicao">{{ forloop.counter }}</td>
+                <td>{{ aluno.nome_completo }}</td>
+                <td>{% if aluno.turma %}{{ aluno.turma.nome }}{% else %}(Sem turma){% endif %}</td>
+                <td class="pontos">{{ aluno.pontos_totais }} pts</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4">Nenhum aluno com pontuação.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 {% endblock %}
