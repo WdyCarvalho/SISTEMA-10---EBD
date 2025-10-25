@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+
+{% block title %}Hub do Supervisor{% endblock %}
+
+{% block content %}
+    <h2>Relatórios e Gerenciamento</h2>
+    <p>Selecione uma das opções abaixo para continuar.</p>
+
+    <style>
+        .card-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .card {
+            display: block;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            text-decoration: none;
+            color: #333;
+            transition: all 0.2s ease;
+            height: 120px; /* Altura fixa para alinhar */
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            border-color: #007bff;
+        }
+        .card h3 {
+            margin-top: 0;
+            color: #0056b3;
+        }
+        .card p {
+            font-size: 0.9em;
+            color: #555;
+        }
+    </style>
+
+    <div class="card-container">
+        <a href="{% url 'relatorio_ranking_alunos' %}" class="card">
+            <h3>Ranking Geral de Alunos</h3>
+            <p>Veja os 20 alunos com maior pontuação em toda a EBD.</p>
+        </a>
+        
+        <a href="{% url 'relatorio_ranking_turmas' %}" class="card">
+            <h3>Ranking Geral de Turmas</h3>
+            <p>Veja a classificação das turmas por pontuação média.</p>
+        </a>
+
+        <a href="{% url 'relatorio_ranking_professores' %}" class="card">
+            <h3>Ranking de Professores</h3>
+            <p>Veja a classificação de professores por pontuação.</p>
+        </a>
+
+        <a href="{% url 'gerenciamento_turmas' %}" class="card">
+            <h3>Gerenciamento de Turmas</h3>
+            <p>Faça a chamada ou veja o ranking de qualquer turma.</p>
+        </a>
+
+        <a href="{% url 'gerenciamento_alunos' %}" class="card">
+            <h3>Gerenciamento de Alunos</h3>
+            <p>Veja o relatório individual de qualquer aluno.</p>
+        </a>
+    </div>
+    
+    {% endblock %}

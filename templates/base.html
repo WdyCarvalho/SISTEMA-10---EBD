@@ -41,6 +41,23 @@
         {% endif %}
     </header>
 
+    <div style="max-width: 900px; margin: 1rem auto 0 auto; padding: 0 1rem; text-align: right; color: #555; font-size: 0.9em;">
+    {% if user.is_authenticated %}
+        Bem-vindo(a), <strong>{{ user.first_name|default:user.username }} {{ user.last_name|default:user.username }}</strong> |
+        <span style="font-weight: bold;">
+        {% if is_supervisor %}
+            Supervisor
+        {% elif is_professor %}
+            Professor
+        {% elif is_aluno %}
+            Aluno
+        {% else %}
+            Usuário
+        {% endif %}
+        </span>
+    {% endif %}
+    </div>
+
     <main class="container">
         {% block content %}
         {% endblock %}

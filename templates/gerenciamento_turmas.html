@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block title %}Gerenciamento de Turmas{% endblock %}
+{% block content %}
+    <h2>Gerenciamento de Turmas</h2>
+    <style>
+        .admin-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        .admin-table th, .admin-table td { border: 1px solid #ddd; padding: 8px; }
+        .admin-table th { background-color: #f2f2f2; }
+    </style>
+    <table class="admin-table">
+        <thead> <tr> <th>Turma</th> <th>Professor Titular</th> <th>Ações</th> </tr> </thead>
+        <tbody>
+            {% for turma in lista_todas_turmas %}
+            <tr>
+                <td>{{ turma.nome }}</td>
+                <td>{{ turma.professor.username|default:"Sem professor" }}</td>
+                <td>
+                    <a href="{% url 'pagina_chamada' turma.id %}">Fazer Chamada</a> | 
+                    <a href="{% url 'detalhes_turma' turma.id %}">Ver Ranking</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

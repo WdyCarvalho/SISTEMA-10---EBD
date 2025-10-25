@@ -26,4 +26,10 @@ urlpatterns = [
     path('meu-relatorio/professor/', views.meu_relatorio_professor, name='meu_relatorio_professor'),
 
     path('aluno/<int:aluno_id>/relatorio/', views.relatorio_aluno_individual, name='relatorio_aluno_individual'),
+
+    path('relatorios/ranking-alunos/', views.relatorio_ranking_alunos, name='relatorio_ranking_alunos'),
+    path('relatorios/ranking-turmas/', views.relatorio_ranking_turmas, name='relatorio_ranking_turmas'),
+    path('relatorios/ranking-professores/', views.relatorio_ranking_professores, name='relatorio_ranking_professores'),
+    path('relatorios/gerenciamento-turmas/', views.gerenciamento_turmas, name='gerenciamento_turmas'),
+    path('relatorios/gerenciamento-alunos/', views.gerenciamento_alunos, name='gerenciamento_alunos'),
 ]

@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block title %}Ranking de Alunos{% endblock %}
+{% block content %}
+    <h2>Ranking Geral de Alunos (Top 20)</h2>
+    <style>
+        /* (Cole o estilo do .ranking-box aqui) */
+        .ranking-box { padding: 15px; background-color: #f9f9f9; border: 1px solid #eee; border-radius: 8px; }
+        .ranking-box ol { padding-left: 20px; } .ranking-box li { font-size: 1.1em; margin-bottom: 8px; }
+        .ranking-box span { font-weight: bold; }
+    </style>
+    <div class="ranking-box">
+        <ol>
+            {% for aluno in ranking_alunos_geral %}
+                <li>
+                    {{ aluno.nome_completo }} 
+                    {% if aluno.turma %} ({{ aluno.turma.nome }}) {% else %} (Sem turma) {% endif %}
+                    - <span>{{ aluno.pontos_totais }} pts</span>
+                </li>
+            {% empty %} <li>Nenhum aluno com pontuação.</li> {% endfor %}
+        </ol>
+    </div>
+{% endblock %}

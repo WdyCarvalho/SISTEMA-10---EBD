@@ -10,6 +10,7 @@ from .forms import RegistroChamadaForm, RegistroChamadaProfessorForm
 from datetime import date # Para pegar a data de hoje
 from .context_processors import permissoes_context # Importe a função que criamos
 
+
 @login_required 
 def dashboard(request):
     permissores = permissoes_context(request)
@@ -78,10 +79,10 @@ def pagina_chamada(request, turma_id):
         try:
             # Pega o perfil do professor titular (NÃO do request.user)
             perfil_professor = professor_titular.perfil_professor 
-            registro_professor, _ = RegistroChamadaProfessor.objects.get_or_create(
-                chamada=chamada,
-                professor=perfil_professor
-            )
+            registro_professor, criado = RegistroChamadaProfessor.objects.update_or_create(
+            chamada=chamada,  # Procura o registro pela 'chamada' (que é UNIQUE)
+            defaults={'professor': perfil_professor} # Atualiza o professor se for diferente
+        )
         except PerfilProfessor.DoesNotExist:
             professor_titular = None # Zera se o perfil não existir
     
@@ -131,48 +132,16 @@ def pagina_chamada(request, turma_id):
 @login_required
 def pagina_relatorios(request):
     """
-    (ETAPA 12 - ATUALIZADA)
+    (ETAPA 13 - ATUALIZADA)
     Esta é a view "Hub" do Supervisor.
-    Mostra os 3 rankings gerais E listas de gerenciamento.
+    Ela NÃO busca dados, apenas renderiza o template dos CARDS.
     """
     permissores = permissoes_context(request)
     if not permissores['is_supervisor']:
         return HttpResponseForbidden("<h1>Acesso Negado</h1><p>Esta página é apenas para supervisores.</p>")
 
-    # 1. Ranking Geral de Alunos (Igual antes)
-    ranking_alunos_geral = Aluno.objects.all().order_by('-pontos_totais')[:20]
-
-    # 2. Ranking Geral de Turmas (Igual antes)
-    ranking_turmas_geral = Turma.objects.annotate(
-        pontuacao_media=Avg('alunos__pontos_totais')
-    ).filter(
-        pontuacao_media__gt=0
-    ).order_by('-pontuacao_media')
-
-    # 3. Ranking Geral de Professores (Igual antes)
-    ranking_professores = PerfilProfessor.objects.select_related('user').filter(
-        pontos_totais__gt=0
-    ).order_by(
-        '-pontos_totais'
-    )
-    
-    # --- NOVAS LISTAS PARA GERENCIAMENTO ---
-    # 4. Lista de todas as Turmas
-    lista_todas_turmas = Turma.objects.select_related('professor').all().order_by('nome')
-    
-    # 5. Lista de todos os Alunos
-    lista_todos_alunos = Aluno.objects.select_related('turma').all().order_by('nome_completo')
-    # --- FIM DAS NOVAS LISTAS ---
-
-    contexto = {
-        'ranking_alunos_geral': ranking_alunos_geral,
-        'ranking_turmas_geral': ranking_turmas_geral,
-        'ranking_professores': ranking_professores,
-        'lista_todas_turmas': lista_todas_turmas, # Novo
-        'lista_todos_alunos': lista_todos_alunos, # Novo
-    }
-    
-    return render(request, 'relatorios.html', contexto)
+    # Não precisa mais de contexto, só renderiza o HTML com os links
+    return render(request, 'relatorios_hub.html')
 
 
 @login_required
@@ -263,7 +232,7 @@ def detalhes_turma(request, turma_id):
         acesso_permitido = True
         
     if not acesso_permitido:
-        return HttpResponseForbidden("<h1>Acesso Negado</h1><p>Você não tem permissão para ver esta turma.</p>")
+        return HttpResponseForbidden("<h1>Acesso Negado</h1>Você não tem permissão para ver esta turma.")
     # --- FIM DA ATUALIZAÇÃO DE SEGURANÇA ---
 
     # Se o acesso for permitido, busca os alunos
@@ -340,3 +309,69 @@ def relatorio_aluno_individual(request, aluno_id):
     }
     # Reutiliza o template do aluno
     return render(request, 'meu_relatorio.html', contexto)
+
+# core/views.py
+# ... (outras views) ...
+
+# -----------------------------------------------------------------
+# ETAPA 13: NOVAS VIEWS DOS CARDS DO SUPERVISOR
+# -----------------------------------------------------------------
+
+@login_required
+def relatorio_ranking_alunos(request):
+    """Página 1: Mostra o Ranking Geral de Alunos."""
+    permissores = permissoes_context(request)
+    if not permissores['is_supervisor']:
+        return HttpResponseForbidden("<h1>Acesso Negado</h1><p>Apenas supervisores podem ver este relatório.</p>")
+
+    ranking_alunos_geral = Aluno.objects.all().order_by('-pontos_totais')[:20]
+    contexto = {'ranking_alunos_geral': ranking_alunos_geral}
+    return render(request, 'relatorios_ranking_alunos.html', contexto)
+
+@login_required
+def relatorio_ranking_turmas(request):
+    """Página 2: Mostra o Ranking Geral de Turmas."""
+    permissores = permissoes_context(request)
+    if not permissores['is_supervisor']:
+        return HttpResponseForbidden("<h1>Acesso Negado</h1><p>Apenas supervisores podem ver este relatório.</p>")
+
+    ranking_turmas_geral = Turma.objects.annotate(
+        pontuacao_media=Avg('alunos__pontos_totais')
+    ).filter(pontuacao_media__gt=0).order_by('-pontuacao_media')
+    contexto = {'ranking_turmas_geral': ranking_turmas_geral}
+    return render(request, 'relatorios_ranking_turmas.html', contexto)
+
+@login_required
+def relatorio_ranking_professores(request):
+    """Página 3: Mostra o Ranking Geral de Professores."""
+    permissores = permissoes_context(request)
+    if not permissores['is_supervisor']:
+        return HttpResponseForbidden("<h1>Acesso Negado</h1><p>Apenas supervisores podem ver este relatório.</p>")
+
+    ranking_professores = PerfilProfessor.objects.select_related('user').filter(
+        pontos_totais__gt=0
+    ).order_by('-pontos_totais')
+    contexto = {'ranking_professores': ranking_professores}
+    return render(request, 'relatorios_ranking_professores.html', contexto)
+
+@login_required
+def gerenciamento_turmas(request):
+    """Página 4: Mostra a tabela de Gerenciamento de Turmas."""
+    permissores = permissoes_context(request)
+    if not permissores['is_supervisor']:
+        return HttpResponseForbidden("<h1>Acesso Negado</h1><p>Apenas supervisores podem ver este relatório.</p>")
+
+    lista_todas_turmas = Turma.objects.select_related('professor').all().order_by('nome')
+    contexto = {'lista_todas_turmas': lista_todas_turmas}
+    return render(request, 'gerenciamento_turmas.html', contexto)
+
+@login_required
+def gerenciamento_alunos(request):
+    """Página 5: Mostra a tabela de Gerenciamento de Alunos."""
+    permissores = permissoes_context(request)
+    if not permissores['is_supervisor']:
+        return HttpResponseForbidden("<h1>Acesso Negado</h1><p>Apenas supervisores podem ver este relatório.</p>")
+        
+    lista_todos_alunos = Aluno.objects.select_related('turma').all().order_by('nome_completo')
+    contexto = {'lista_todos_alunos': lista_todos_alunos}
+    return render(request, 'gerenciamento_alunos.html', contexto)
