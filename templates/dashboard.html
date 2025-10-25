@@ -11,15 +11,17 @@
     <h3>Minhas Turmas</h3>
     
     {% if turmas %} <ul>
-            {% for turma in turmas %}
-                <li style="font-size: 1.2em; margin-bottom: 10px;">
-                    {{ turma.nome }} 
-                    
-                    <a href="#" style="margin-left: 20px;">
-                        Fazer Chamada
-                    </a>
-                </li>
-            {% endfor %}
+           
+    {% for turma in turmas %}
+        <li style="font-size: 1.2em; margin-bottom: 10px;">
+            {{ turma.nome }} 
+            
+            <a href="{% url 'pagina_chamada' turma.id %}" style="margin-left: 20px;">
+                Fazer Chamada
+            </a>
+        </li>
+    {% endfor %}
+
         </ul>
     {% else %}
         <p>Você ainda não foi associado a nenhuma turma. Entre em contato com o administrador.</p>

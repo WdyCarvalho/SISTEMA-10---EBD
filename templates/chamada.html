@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+
+{% block title %}Chamada - {{ turma.nome }}{% endblock %}
+
+{% block content %}
+    <h2>Chamada da Turma: {{ turma.nome }}</h2>
+
+    <form method="get" action="">
+        <label for="data">Selecione a Data:</label>
+        <input 
+            type="date" 
+            id="data" 
+            name="data" 
+            value="{{ data_selecionada_str }}">
+        <button type="submit">Buscar</button>
+    </form>
+
+    <hr>
+
+    <form method="post">
+        {% csrf_token %}
+        
+        {{ formset.management_form }}
+
+        <style>
+            /* CSS simples para a tabela de chamada */
+            .chamada-table { width: 100%; border-collapse: collapse; }
+            .chamada-table th, .chamada-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            .chamada-table th { background-color: #f2f2f2; }
+            .chamada-table td input[type="checkbox"] { width: 20px; height: 20px; }
+        </style>
+
+        <table class="chamada-table">
+            <thead>
+                <tr>
+                    <th>Aluno</th>
+                    {% if formset.forms %}
+                        {% for field in formset.forms.0 %}
+                            <th>{{ field.label }}</th>
+                        {% endfor %}
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for form in formset %}
+                    <tr>
+                        <td>
+                            {{ form.instance.aluno.nome_completo }}
+                        </td>
+                        
+                        {% for field in form %}
+                            <td>
+                                {{ field }}
+                            </td>
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <br>
+        <button type="submit" style="font-size: 1.2em; padding: 10px;">
+            Salvar Chamada
+        </button>
+    </form>
+
+{% endblock %}
