@@ -375,3 +375,70 @@ def gerenciamento_alunos(request):
     lista_todos_alunos = Aluno.objects.select_related('turma').all().order_by('nome_completo')
     contexto = {'lista_todos_alunos': lista_todos_alunos}
     return render(request, 'gerenciamento_alunos.html', contexto)
+
+# core/views.py
+# ... (outras views) ...
+
+@login_required
+def relatorio_professor_individual(request, professor_user_id):
+    """
+    (NOVA ETAPA 14)
+    Mostra o relatório de um professor específico (pelo ID do User).
+    Acessível apenas por Supervisores.
+    """
+    permissores = permissoes_context(request)
+    
+    # SEGURANÇA: Só Supervisores
+    if not permissores['is_supervisor']:
+        return HttpResponseForbidden("<h1>Acesso Negado</h1><p>Apenas supervisores podem ver este relatório.</p>")
+
+    # Busca o usuário do professor
+    professor_user = get_object_or_404(User, id=professor_user_id)
+    
+    try:
+        # Pega o perfil e os registros
+        perfil = professor_user.perfil_professor
+        registros = RegistroChamadaProfessor.objects.filter(professor=perfil).order_by('-chamada__data')
+    except PerfilProfessor.DoesNotExist:
+        return HttpResponseForbidden("<h1>Erro</h1><p>O perfil deste professor não foi encontrado.</p>")
+    
+    # Calcula estatísticas
+    faltas = registros.filter(presenca=False).count()
+    presencas = registros.filter(presenca=True).count()
+    
+    contexto = {
+        'professor': professor_user, # Passa o User do professor
+        'registros': registros,
+        'faltas': faltas,
+        'presencas': presencas,
+        'pontos_totais': perfil.pontos_totais
+    }
+    
+    # Reutiliza o template que já criamos!
+    return render(request, 'meu_relatorio_professor.html', contexto)
+
+# core/views.py
+# ... (outras views) ...
+
+@login_required
+def gerenciamento_professores(request):
+    """
+    (NOVA ETAPA 14)
+    Mostra a lista de todos os professores para o Supervisor.
+    """
+    permissores = permissoes_context(request)
+    if not permissores['is_supervisor']:
+        return HttpResponseForbidden("<h1>Acesso Negado</h1><p>Apenas supervisores podem ver este relatório.</p>")
+
+    # Busca todos os Usuários que estão no grupo "Professores"
+    # e já pega seus perfis (pontos) e turmas (prefetch)
+    lista_professores = User.objects.filter(
+        groups__name='Professores'
+    ).select_related(
+        'perfil_professor'
+    ).prefetch_related(
+        'turmas_lecionadas' # O related_name que demos no modelo Turma
+    ).order_by('username')
+
+    contexto = {'lista_professores': lista_professores}
+    return render(request, 'gerenciamento_professores.html', contexto)

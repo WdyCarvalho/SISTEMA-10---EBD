@@ -32,4 +32,7 @@ urlpatterns = [
     path('relatorios/ranking-professores/', views.relatorio_ranking_professores, name='relatorio_ranking_professores'),
     path('relatorios/gerenciamento-turmas/', views.gerenciamento_turmas, name='gerenciamento_turmas'),
     path('relatorios/gerenciamento-alunos/', views.gerenciamento_alunos, name='gerenciamento_alunos'),
+
+    path('professor/<int:professor_user_id>/relatorio/', views.relatorio_professor_individual, name='relatorio_professor_individual'),
+    path('relatorios/gerenciamento-professores/', views.gerenciamento_professores, name='gerenciamento_professores'),
 ]

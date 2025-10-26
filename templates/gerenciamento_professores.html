@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block title %}Gerenciamento de Professores{% endblock %}
+{% block content %}
+    <h2>Gerenciamento de Professores</h2>
+
+    <style>
+        .admin-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        .admin-table th, .admin-table td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        .admin-table th { background-color: #f2f2f2; }
+        .admin-table tr:nth-child(even) { background-color: #f9f9f9; }
+    </style>
+
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>Professor</th>
+                <th>Pontos Totais</th>
+                <th>Turmas Lecionadas</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for prof in lista_professores %}
+            <tr>
+                <td>{{ prof.first_name }} {{ prof.last_name }} ({{ prof.username }})</td>
+                <td>{{ prof.perfil_professor.pontos_totais|default:0 }} pts</td>
+                <td>
+                    {% for turma in prof.turmas_lecionadas.all %}
+                        {{ turma.nome }}<br>
+                    {% empty %}
+                        Nenhuma
+                    {% endfor %}
+                </td>
+                <td>
+                    <a href="{% url 'relatorio_professor_individual' prof.id %}">Ver Relatório Individual</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4">Nenhum professor encontrado no grupo "Professores".</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}
