@@ -2,6 +2,7 @@
 from django.urls import path
 from django.contrib.auth import views as auth_views
 from . import views 
+from django.views.generic import TemplateView
 
 urlpatterns = [
     path('', views.dashboard, name='dashboard'),
@@ -41,4 +42,10 @@ urlpatterns = [
     path('cadastros/professor/novo/', views.cadastrar_professor, name='cadastrar_professor'),
     path('cadastros/aluno/novo/', views.cadastrar_aluno, name='cadastrar_aluno'),
     path('cadastros/supervisor/novo/', views.cadastrar_supervisor, name='cadastrar_supervisor'),
+
+    #MOBILE URLS
+    path('offline/', TemplateView.as_view(template_name='offline.html'), name='offline'),
+    path('service-worker.js', 
+         TemplateView.as_view(template_name="service-worker.js", content_type='application/javascript'), 
+         name='service-worker.js'),
 ]
