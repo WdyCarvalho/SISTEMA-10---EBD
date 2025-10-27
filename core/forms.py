@@ -23,14 +23,15 @@ class RegistroChamadaForm(forms.ModelForm):
         ]
         
         # Opcional: Remove os "labels" (nomes) de cada caixa
+        # --- ATUALIZAÇÃO DOS WIDGETS (ETAPA 16) ---
         widgets = {
-            'presenca': forms.CheckboxInput(attrs={'title': 'Presença'}),
-            'biblia': forms.CheckboxInput(attrs={'title': 'Bíblia'}),
-            'versiculo': forms.CheckboxInput(attrs={'title': 'Versículo'}),
-            'convidado': forms.CheckboxInput(attrs={'title': 'Convidado'}),
-            'oferta': forms.CheckboxInput(attrs={'title': 'Oferta'}),
-            'atividades': forms.CheckboxInput(attrs={'title': 'Atividades'}),
-            'revista': forms.CheckboxInput(attrs={'title': 'Revista'}),
+            'presenca': forms.CheckboxInput(attrs={'title': 'Presença', 'class': 'form-check-input'}),
+            'biblia': forms.CheckboxInput(attrs={'title': 'Bíblia', 'class': 'form-check-input'}),
+            'revista': forms.CheckboxInput(attrs={'title': 'Revista', 'class': 'form-check-input'}),
+            'oferta': forms.CheckboxInput(attrs={'title': 'Oferta', 'class': 'form-check-input'}),
+            'versiculo': forms.CheckboxInput(attrs={'title': 'Texto Bíblico', 'class': 'form-check-input'}),
+            'atividades': forms.CheckboxInput(attrs={'title': 'Questionário', 'class': 'form-check-input'}),
+            'convidado': forms.CheckboxInput(attrs={'title': 'Convidado', 'class': 'form-check-input'}),
         }
 
 

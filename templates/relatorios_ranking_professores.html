@@ -3,19 +3,9 @@
 {% block content %}
     <h2>Ranking Geral de Professores</h2>
 
-    <style>
-        .admin-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        .admin-table th, .admin-table td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-        .admin-table th { background-color: #f2f2f2; }
-        .admin-table tr:nth-child(even) { background-color: #f9f9f9; }
-        .admin-table .posicao { width: 50px; text-align: center; font-weight: bold; }
-        .admin-table .pontos { width: 100px; text-align: right; font-weight: bold; }
-    </style>
+    <input type="text" id="searchInput" onkeyup="filterTable('searchInput', 'searchableTable')" placeholder="Buscar por nome do professor..." class="form-control search-box mb-4">
 
-    <input type="text" id="searchInput" onkeyup="filterTable('searchInput', 'searchableTable')" 
-       placeholder="Buscar por nome do professor..." style="width: 100%; padding: 8px; margin-bottom: 15px; box-sizing: border-box;">
-       
-    <table class="admin-table" id="searchableTable">
+    <table class="table table-hover align-middle" id="searchableTable">
         <thead>
             <tr>
                 <th class="posicao">#</th>

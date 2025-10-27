@@ -3,75 +3,74 @@
 {% block title %}Meu Relatório{% endblock %}
 
 {% block content %}
-    <h2>Relatório Pessoal de {{ aluno.nome_completo }}</h2>
-    
-    {% if aluno.turma %}
-        <p>Turma: {{ aluno.turma.nome }} 
-            <a href="{% url 'detalhes_turma' aluno.turma.id %}" style="font-size: 0.9em;">
-                (Ver Ranking da Turma)
-            </a>
-        </p>
-    {% else %}
-        <p style="color: red;">Turma: Nenhuma turma associada. (Informe ao administrador)</p>
-    {% endif %}
+    <h2 class="fw-light border-bottom pb-2 mb-4">Relatório Pessoal</h2>
+    <p class="lead text-muted mb-4">
+        Acompanhe seu histórico de pontos e frequência, <strong>{{ aluno.nome_completo }}</strong>.
+    </p>
 
-    <style>
-        .rankings-container { display: flex; flex-wrap: wrap; gap: 20px; }
-        .ranking-box { flex: 1; min-width: 250px; padding: 15px; background-color: #f9f9f9; border: 1px solid #eee; border-radius: 8px; }
-        .ranking-box h3 { margin-top: 0; }
-        .ranking-box li { list-style: none; font-size: 1.2em; margin-bottom: 5px; }
-        .ranking-box span { font-weight: bold; }
-        /* Estilo da tabela */
-        .chamada-table { width: 100%; border-collapse: collapse; margin-top: 20px;}
-        .chamada-table th, .chamada-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        .chamada-table th { background-color: #f2f2f2; }
-    </style>
-
-    <div class="rankings-container">
-        <div class="ranking-box">
-            <h3>Resumo</h3>
-            <ul>
-                <li><span>Pontos Totais:</span> {{ pontos_totais }}</li>
-                <li><span>Total de Presenças:</span> {{ presencas }}</li>
-                <li><span>Total de Faltas:</span> {{ faltas }}</li>
-            </ul>
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center p-4">
+                    <h6 class="card-subtitle mb-2 text-muted text-uppercase small">Pontos Totais</h6>
+                    <p class="card-text fs-2 fw-bold" style="color: var(--cor-primaria);">{{ pontos_totais }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center p-4">
+                    <h6 class="card-subtitle mb-2 text-muted text-uppercase small">Total de Presenças</h6>
+                    <p class="card-text fs-2 fw-bold text-success">{{ presencas }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center p-4">
+                    <h6 class="card-subtitle mb-2 text-muted text-uppercase small">Total de Faltas</h6>
+                    <p class="card-text fs-2 fw-bold text-danger">{{ faltas }}</p>
+                </div>
+            </div>
         </div>
     </div>
 
-    <h3>Histórico de Chamadas</h3>
-    <table class="chamada-table">
-        <thead>
-            <tr>
-                <th>Data</th>
-                <th>Presença</th>
-                <th>Bíblia</th>
-                <th>Versículo</th>
-                <th>Convidado</th>
-                <th>Oferta</th>
-                <th>Atividades</th>
-                <th>Revista</th>
-                <th>Pontos no Dia</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for registro in registros %}
+    <h3 class="fw-light mt-5 mb-4">Histórico de Chamadas</h3>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
                 <tr>
-                    <td>{{ registro.chamada.data|date:"d/m/Y" }}</td>
-                    <td>{% if registro.presenca %}Sim{% else %}Não{% endif %}</td>
-                    <td>{% if registro.biblia %}Sim{% else %}-{% endif %}</td>
-                    <td>{% if registro.versiculo %}Sim{% else %}-{% endif %}</td>
-                    <td>{% if registro.convidado %}Sim{% else %}-{% endif %}</td>
-                    <td>{% if registro.oferta %}Sim{% else %}-{% endif %}</td>
-                    <td>{% if registro.atividades %}Sim{% else %}-{% endif %}</td>
-                    <td>{% if registro.revista %}Sim{% else %}-{% endif %}</td>
-                    <td><strong>{{ registro.pontos_ganhos }}</strong></td>
+                    <th>Data</th>
+                    <th>Presença</th>
+                    <th>Bíblia</th>
+                    <th>Revista</th>
+                    <th>Oferta</th>
+                    <th>Texto Bíblico</th>
+                    <th>Questionário</th>
+                    <th>Convidado</th>
+                    <th class="text-end">Pontos no Dia</th>
                 </tr>
-            {% empty %}
-                <tr>
-                    <td colspan="9">Nenhum registro encontrado.</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                {% for registro in registros %}
+                    <tr>
+                        <td>{{ registro.chamada.data|date:"d/m/Y" }}</td>
+                        <td class="text-center">{% if registro.presenca %}<i class="bi bi-check-circle-fill text-success"></i>{% else %}<i class="bi bi-x-circle-fill text-danger"></i>{% endif %}</td>
+                        <td class="text-center">{% if registro.biblia %}<i class="bi bi-check-lg text-muted"></i>{% else %}-{% endif %}</td>
+                        <td class="text-center">{% if registro.revista %}<i class="bi bi-check-lg text-muted"></i>{% else %}-{% endif %}</td>
+                        <td class="text-center">{% if registro.oferta %}<i class="bi bi-check-lg text-muted"></i>{% else %}-{% endif %}</td>
+                        <td class="text-center">{% if registro.versiculo %}<i class="bi bi-check-lg text-muted"></i>{% else %}-{% endif %}</td>
+                        <td class="text-center">{% if registro.atividades %}<i class="bi bi-check-lg text-muted"></i>{% else %}-{% endif %}</td>
+                        <td class="text-center">{% if registro.convidado %}<i class="bi bi-check-lg text-muted"></i>{% else %}-{% endif %}</td>
+                        <td class="text-end fw-bold"><strong>{{ registro.pontos_ganhos }}</strong></td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="9">Nenhum registro encontrado.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 
 {% endblock %}

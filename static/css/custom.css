@@ -1,0 +1,212 @@
+/* static/css/custom.css */
+
+/* 1. Definição das Nossas Cores (Inspirado em Linear/Stripe) */
+:root {
+    --cor-primaria: #5E50F9;  /* Um roxo/azul vibrante (inspirado em Linear/Stripe) */
+    --cor-primaria-clara: #f4f2ff; /* Um fundo roxo bem claro */
+    --cor-fundo: #f7f8fc;       /* Fundo "SaaS" (cinza muito claro) */
+    --cor-texto: #17132a;         /* Texto escuro (não preto puro) */
+    --cor-texto-suave: #6b6b78;  /* Texto secundário */
+    --cor-borda: #e4e4e7;       /* Bordas sutis */
+
+    --raio-borda-lg: 16px;      /* Cantos bem arredondados (Notion/Apple) */
+    --raio-borda-md: 10px;
+
+    /* Sombra "flutuante" sutil */
+    --sombra-card: 0 4px 10px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.05);
+    --sombra-card-hover: 0 8px 25px rgba(94, 80, 249, 0.1), 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+/* 2. Estilo Global */
+body {
+    background-color: var(--cor-fundo);
+    color: var(--cor-texto);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* 3. Navbar (Cabeçalho) */
+/* Sobrescreve o bg-dark/bg-white do Bootstrap */
+.navbar.navbar-custom {
+    background-color: white;
+    border-bottom: 1px solid var(--cor-borda);
+    box-shadow: var(--sombra-card);
+}
+.navbar .navbar-brand {
+    font-weight: 600;
+    color: var(--cor-primaria);
+}
+.navbar .nav-link {
+    font-weight: 500;
+    color: var(--cor-texto-suave);
+}
+.navbar .nav-link.active,
+.navbar .nav-link:hover {
+    color: var(--cor-primaria);
+}
+
+/* 4. O Card Principal da Página (em base.html) */
+.main-content-card {
+    background-color: #ffffff;
+    border-radius: var(--raio-borda-lg);
+    padding: 2.5rem; /* Espaçamento generoso */
+    box-shadow: var(--sombra-card);
+}
+
+/* 5. Cards do Hub (Sobrescrevendo o Bootstrap) */
+.card {
+    border-radius: var(--raio-borda-md) !important;
+    border: 1px solid var(--cor-borda) !important;
+    box-shadow: var(--sombra-card) !important;
+    transition: all 0.2s ease-in-out;
+    height: 100%; /* Garante altura igual */
+}
+.card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--sombra-card-hover) !important;
+    border-color: var(--cor-primaria) !important;
+}
+.card .card-title {
+    color: var(--cor-primaria);
+    font-weight: 600;
+}
+.card-body i {
+    /* Define a cor padrão dos ícones */
+    color: var(--cor-primaria);
+    font-size: 2.5rem;
+}
+
+/* 6. Tabelas (Design "SaaS" moderno) */
+.table {
+    border-collapse: separate; /* Chave para cantos arredondados */
+    border-spacing: 0 8px; /* Espaço entre as linhas */
+    margin-top: -8px;
+}
+.table th {
+    border: none;
+    color: var(--cor-texto-suave);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+}
+.table td {
+    background-color: #ffffff;
+    border: none;
+    padding: 1.25rem; /* Espaçamento generoso */
+    vertical-align: middle;
+    font-weight: 500;
+}
+/* Cantos arredondados para as células das pontas */
+.table tr td:first-child {
+    border-top-left-radius: var(--raio-borda-md);
+    border-bottom-left-radius: var(--raio-borda-md);
+}
+.table tr td:last-child {
+    border-top-right-radius: var(--raio-borda-md);
+    border-bottom-right-radius: var(--raio-borda-md);
+}
+/* Efeito de hover na linha da tabela */
+.table-hover > tbody > tr:hover > * {
+    background-color: var(--cor-primaria-clara);
+    color: var(--cor-primaria);
+}
+/* Remove o "zebrado" do Bootstrap */
+.table-striped > tbody > tr:nth-of-type(odd) > * {
+    --bs-table-accent-bg: transparent; 
+    background-color: white;
+}
+
+/* 7. Caixa de Busca */
+.form-control.search-box {
+    border-radius: var(--raio-borda-md);
+    border: 1px solid var(--cor-borda);
+    box-shadow: none;
+    padding: 0.75rem 1rem;
+}
+.form-control.search-box:focus {
+    border-color: var(--cor-primaria);
+    box-shadow: 0 0 0 3px var(--cor-primaria-clara);
+}
+
+/* 8. Botões */
+.btn-primary {
+    background-color: var(--cor-primaria);
+    border-color: var(--cor-primaria);
+    border-radius: var(--raio-borda-md);
+    font-weight: 600;
+    padding: 0.75rem 1.5rem;
+}
+.btn-primary:hover {
+    background-color: #4a3ad9; /* Um pouco mais escuro */
+    border-color: #4a3ad9;
+}
+
+/* 9. Estilos de Formulário (Login, Chamada do Prof) */
+.form-label {
+    font-weight: 600;
+    color: var(--cor-texto-suave);
+    font-size: 0.9rem;
+}
+.form-control {
+    border-radius: var(--raio-borda-md);
+    border: 1px solid var(--cor-borda);
+    box-shadow: none;
+    padding: 0.75rem 1rem;
+}
+.form-control:focus {
+    border-color: var(--cor-primaria);
+    box-shadow: 0 0 0 3px var(--cor-primaria-clara);
+}
+
+/* 10. Abas (Tabs) da Página de Chamada */
+.nav-tabs {
+    border-bottom: 2px solid var(--cor-borda);
+}
+.nav-tabs .nav-link {
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--cor-texto-suave);
+    font-weight: 600;
+}
+.nav-tabs .nav-link.active,
+.nav-tabs .nav-item.show .nav-link {
+    color: var(--cor-primaria);
+    border-color: var(--cor-primaria);
+    background-color: transparent;
+}
+.nav-tabs .nav-link:hover,
+.nav-tabs .nav-link:focus {
+    border-color: var(--cor-primaria-clara);
+}
+.tab-content {
+    padding-top: 1.5rem;
+}
+
+/* 11. Checkboxes (para a tabela de chamada) */
+.form-check-input {
+    border-radius: 0.25em !important; /* Deixa quadrado */
+    border: 1px solid var(--cor-borda);
+    height: 1.25em;
+    width: 1.25em;
+}
+.form-check-input:checked {
+    background-color: var(--cor-primaria);
+    border-color: var(--cor-primaria);
+}
+.form-check-input:focus {
+    box-shadow: 0 0 0 3px var(--cor-primaria-clara);
+}
+.table td .form-check {
+    /* Centraliza o checkbox na célula da tabela */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 40px; /* Garante altura mínima para alinhamento */
+    padding-left: 0;
+}
+.table td .form-check .form-check-input {
+    float: none; /* Remove o 'float' padrão */
+    margin-left: 0;
+}

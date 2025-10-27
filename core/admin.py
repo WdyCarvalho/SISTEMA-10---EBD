@@ -36,11 +36,11 @@ class RegistroChamadaAdmin(admin.ModelAdmin):
         'aluno', 
         'presenca', 
         'biblia', 
-        'versiculo', 
-        'convidado', 
-        'oferta', 
-        'atividades',
-        'revista', # Adicionado na Etapa 5
+        'revista',  # Ordem mudou
+        'oferta',   # Ordem mudou
+        'versiculo',# Ordem mudou
+        'atividades',# Ordem mudou
+        'convidado',# Ordem mudou
         'pontos_ganhos'
     )
     

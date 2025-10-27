@@ -97,10 +97,10 @@ class RegistroChamada(models.Model):
 
     presenca = models.BooleanField(default=False, verbose_name="Presença")
     biblia = models.BooleanField(default=False, verbose_name="Bíblia")
-    versiculo = models.BooleanField(default=False, verbose_name="Versículo")
+    versiculo = models.BooleanField(default=False, verbose_name="Texto Bíblico")
     convidado = models.BooleanField(default=False, verbose_name="Convidado")
     oferta = models.BooleanField(default=False, verbose_name="Oferta")
-    atividades = models.BooleanField(default=False, verbose_name="Atividades")
+    atividades = models.BooleanField(default=False, verbose_name="Questionário")
     revista = models.BooleanField(default=False, verbose_name="Revista") # <-- ADICIONE ESTA LINHA
 
     pontos_ganhos = models.IntegerField(default=0)
@@ -118,11 +118,11 @@ class RegistroChamada(models.Model):
         if self.convidado: pontos += 1
         if self.oferta: pontos += 1
         if self.atividades: pontos += 1
+        if self.revista: pontos += 1  # <-- ESTA É A LINHA DA CORREÇÃO
         
         self.pontos_ganhos = pontos
 
         # 2. Salva o registro atual no banco ANTES de atualizar o aluno
-        # Usamos uma flag 'update_fields' para evitar um loop infinito
         super().save(*args, **kwargs)
 
         # 3. Atualizar o placar geral do aluno

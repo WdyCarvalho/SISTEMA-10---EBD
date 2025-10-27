@@ -3,20 +3,34 @@
 {% block title %}Login - Sistema EBD{% endblock %}
 
 {% block content %}
-    <h2>Login</h2>
-    <p>Por favor, utilize seu usuário e senha de professor para acessar.</p>
+<div class="row justify-content-center">
+    <div class="col-lg-5">
+        <h2 class="fw-light text-center mb-4">Acessar o Sistema</h2>
+        <p class="text-center text-muted mb-4">
+            Por favor, utilize seu usuário e senha para continuar.
+        </p>
 
-    {% if form.errors %}
-        <p style="color: red;">Seu usuário ou senha estão incorretos. Tente novamente.</p>
-    {% endif %}
+        {% if form.errors %}
+            <div class="alert alert-danger" role="alert">
+                Seu usuário ou senha estão incorretos. Tente novamente.
+            </div>
+        {% endif %}
 
-    <form method="post">
-        {% csrf_token %} <label for="id_username">Usuário:</label>
-        <input type="text" name="username" id="id_username" required>
-        <br><br>
-        <label for="id_password">Senha:</label>
-        <input type="password" name="password" id="id_password" required>
-        <br><br>
-        <button type="submit">Entrar</button>
-    </form>
+        <form method="post">
+            {% csrf_token %} <div class="mb-3">
+                <label for="id_username" class="form-label">Usuário:</label>
+                <input type="text" name="username" id="id_username" class="form-control form-control-lg" required>
+            </div>
+
+            <div class="mb-3">
+                <label for="id_password" class="form-label">Senha:</label>
+                <input type="password" name="password" id="id_password" class="form-control form-control-lg" required>
+            </div>
+
+            <div class="d-grid mt-4">
+                <button type="submit" class="btn btn-primary btn-lg">Entrar</button>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}
