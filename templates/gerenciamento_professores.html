@@ -10,7 +10,10 @@
         .admin-table tr:nth-child(even) { background-color: #f9f9f9; }
     </style>
 
-    <table class="admin-table">
+    <input type="text" id="searchInput" onkeyup="filterTable('searchInput', 'searchableTable')" 
+       placeholder="Buscar por professor ou turma..." style="width: 100%; padding: 8px; margin-bottom: 15px; box-sizing: border-box;">
+
+    <table class="admin-table" id="searchableTable">
         <thead>
             <tr>
                 <th>Professor</th>
