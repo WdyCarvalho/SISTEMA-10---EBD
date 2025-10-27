@@ -35,4 +35,10 @@ urlpatterns = [
 
     path('professor/<int:professor_user_id>/relatorio/', views.relatorio_professor_individual, name='relatorio_professor_individual'),
     path('relatorios/gerenciamento-professores/', views.gerenciamento_professores, name='gerenciamento_professores'),
+
+    path('cadastros/', views.pagina_cadastros, name='pagina_cadastros'),
+    path('cadastros/turma/nova/', views.cadastrar_turma, name='cadastrar_turma'),
+    path('cadastros/professor/novo/', views.cadastrar_professor, name='cadastrar_professor'),
+    path('cadastros/aluno/novo/', views.cadastrar_aluno, name='cadastrar_aluno'),
+    path('cadastros/supervisor/novo/', views.cadastrar_supervisor, name='cadastrar_supervisor'),
 ]

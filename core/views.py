@@ -2,11 +2,12 @@
 
 from django.http import HttpResponseForbidden
 from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages # Importe o sistema de mensagens
 from django.contrib.auth.decorators import login_required
 from django.forms import modelformset_factory # Importamos o "criador de super-formulários"
 from django.db.models import Sum, Avg, Count
 from .models import Turma, Aluno, Chamada, RegistroChamada, User, PerfilProfessor, RegistroChamadaProfessor
-from .forms import RegistroChamadaForm, RegistroChamadaProfessorForm
+from .forms import RegistroChamadaForm, RegistroChamadaProfessorForm, TurmaForm, ProfessorUserCreationForm, AlunoUserCreationForm, SupervisorUserCreationForm 
 from datetime import date # Para pegar a data de hoje
 from .context_processors import permissoes_context # Importe a função que criamos
 
@@ -442,3 +443,120 @@ def gerenciamento_professores(request):
 
     contexto = {'lista_professores': lista_professores}
     return render(request, 'gerenciamento_professores.html', contexto)
+
+@login_required
+def pagina_cadastros(request):
+    """
+    (NOVA ETAPA 17)
+    Mostra o hub de opções de cadastro (Turma, Professor, Aluno).
+    Acessível apenas por Supervisores.
+    """
+    permissores = permissoes_context(request)
+    if not permissores['is_supervisor']:
+        return HttpResponseForbidden("<h1>Acesso Negado</h1><p>Apenas supervisores podem ver esta página.</p>")
+
+    return render(request, 'cadastros_hub.html')
+
+@login_required
+def cadastrar_turma(request):
+    """
+    (NOVA ETAPA 17)
+    View para o Supervisor criar uma nova turma.
+    """
+    permissores = permissoes_context(request)
+    if not permissores['is_supervisor']:
+        return HttpResponseForbidden("<h1>Acesso Negado</h1><p>Apenas supervisores podem ver esta página.</p>")
+
+    if request.method == 'POST':
+        form = TurmaForm(request.POST)
+        if form.is_valid():
+            turma = form.save()
+            # Adiciona uma mensagem de sucesso
+            messages.success(request, f"A turma '{turma.nome}' foi criada com sucesso!")
+            return redirect('gerenciamento_turmas') # Redireciona para a lista de turmas
+    else:
+        form = TurmaForm()
+
+    contexto = {
+        'form': form,
+        'form_title': 'Cadastrar Nova Turma' # Título para o template genérico
+    }
+    return render(request, 'form_generico.html', contexto)
+
+@login_required
+def cadastrar_professor(request):
+    """
+    (NOVA ETAPA 17)
+    View para o Supervisor criar um novo Professor (Usuário).
+    """
+    permissores = permissoes_context(request)
+    if not permissores['is_supervisor']:
+        return HttpResponseForbidden("<h1>Acesso Negado</h1><p>Apenas supervisores podem ver esta página.</p>")
+
+    if request.method == 'POST':
+        form = ProfessorUserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save() # Salva o usuário e o adiciona ao grupo
+            messages.success(request, f"O professor '{user.username}' foi criado com sucesso!")
+            # Redireciona para a lista de gerenciamento de professores
+            return redirect('gerenciamento_professores') 
+    else:
+        form = ProfessorUserCreationForm()
+
+    contexto = {
+        'form': form,
+        'form_title': 'Cadastrar Novo Professor' 
+    }
+    return render(request, 'form_generico.html', contexto)
+
+@login_required
+def cadastrar_aluno(request):
+    """
+    (NOVA ETAPA 17)
+    View para o Supervisor criar um novo Aluno (User + Aluno).
+    """
+    permissores = permissoes_context(request)
+    if not permissores['is_supervisor']:
+        return HttpResponseForbidden("<h1>Acesso Negado</h1><p>Apenas supervisores podem ver esta página.</p>")
+
+    if request.method == 'POST':
+        form = AlunoUserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save() # Salva o User E cria o Aluno vinculado
+            messages.success(request, f"O aluno '{user.username}' foi criado e vinculado com sucesso!")
+            # Redireciona para a lista de gerenciamento de alunos
+            return redirect('gerenciamento_alunos')
+    else:
+        form = AlunoUserCreationForm()
+
+    contexto = {
+        'form': form,
+        'form_title': 'Cadastrar Novo Aluno'
+    }
+    return render(request, 'form_generico.html', contexto)
+
+@login_required
+def cadastrar_supervisor(request):
+    """
+    (NOVA ETAPA 17)
+    View para o Supervisor criar um novo Supervisor (Usuário).
+    """
+    permissores = permissoes_context(request)
+    if not permissores['is_supervisor']:
+        return HttpResponseForbidden("<h1>Acesso Negado</h1><p>Apenas supervisores podem ver esta página.</p>")
+
+    if request.method == 'POST':
+        form = SupervisorUserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save() # Salva o usuário e o adiciona ao grupo
+            messages.success(request, f"O supervisor '{user.username}' foi criado com sucesso!")
+            # Podemos redirecionar para o Hub de Cadastros ou Gerenciamento de Supervisores (se criarmos)
+            return redirect('pagina_cadastros') 
+    else:
+        form = SupervisorUserCreationForm()
+
+    contexto = {
+        'form': form,
+        'form_title': 'Cadastrar Novo Supervisor' 
+    }
+    return render(request, 'form_generico.html', contexto)
