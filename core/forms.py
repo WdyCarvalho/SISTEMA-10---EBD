@@ -6,6 +6,9 @@ from django.contrib.auth.forms import UserCreationForm # Importa o form base
 from django.db import transaction # Para garantir a criação segura
 from django.forms import ModelChoiceField # Para o dropdown de Turma
 
+
+
+
 class RegistroChamadaForm(forms.ModelForm):
 
     """
@@ -247,3 +250,114 @@ class SupervisorUserCreationForm(UserCreationForm):
         super().__init__(*args, **kwargs)
         for field_name, field in self.fields.items():
             field.widget.attrs.update({'class': 'form-control'})
+
+# core/forms.py
+# ...
+
+class AlunoUserUpdateForm(forms.ModelForm):
+    """
+    Formulário para o Supervisor editar os dados de um Aluno (User + Aluno).
+    NÃO inclui senha.
+    """
+    # Campos do modelo Aluno (pegamos do AlunoUserCreationForm)
+    nome_completo = forms.CharField(max_length=255, required=True, label="Nome Completo do Aluno")
+    turma = ModelChoiceField(queryset=Turma.objects.all(), required=True, label="Turma")
+
+    # Campos do modelo User (sem senha)
+    first_name = forms.CharField(max_length=150, required=False, label="Primeiro Nome")
+    last_name = forms.CharField(max_length=150, required=False, label="Sobrenome")
+    username = forms.CharField(max_length=150, required=True, label="Nome de usuário (Login)")
+
+    class Meta:
+        model = Aluno # O modelo principal é Aluno
+        fields = ['nome_completo', 'turma'] # Campos diretos do Aluno
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Se estamos editando (tem 'instance'), preenchemos os campos do User
+        if self.instance and self.instance.user:
+            self.fields['username'].initial = self.instance.user.username
+            self.fields['first_name'].initial = self.instance.user.first_name
+            self.fields['last_name'].initial = self.instance.user.last_name
+            # Torna o username não editável (geralmente boa prática)
+            self.fields['username'].disabled = True 
+
+        # Adiciona classes CSS
+        self.fields['turma'].widget.attrs.update({'class': 'form-select'})
+        for field_name, field in self.fields.items():
+            if field_name != 'turma':
+                 field.widget.attrs.update({'class': 'form-control'})
+
+    @transaction.atomic
+    def save(self, commit=True):
+        aluno = super().save(commit=commit) # Salva o Aluno (nome_completo, turma)
+        
+        # Atualiza os dados do User associado
+        user = aluno.user
+        # O username não muda (está disabled)
+        user.first_name = self.cleaned_data['first_name']
+        user.last_name = self.cleaned_data['last_name']
+        if commit:
+            user.save()
+            
+        return aluno
+
+class AlunoUserUpdateForm(forms.ModelForm):
+    nome_completo = forms.CharField(max_length=255, required=True, label="Nome Completo do Aluno")
+    turma = ModelChoiceField(queryset=Turma.objects.all(), required=True, label="Turma")
+    first_name = forms.CharField(max_length=150, required=False, label="Primeiro Nome")
+    last_name = forms.CharField(max_length=150, required=False, label="Sobrenome")
+    username = forms.CharField(max_length=150, required=True, label="Nome de usuário (Login)")
+
+    class Meta:
+        model = Aluno
+        fields = ['nome_completo', 'turma']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.user:
+            self.fields['username'].initial = self.instance.user.username
+            self.fields['first_name'].initial = self.instance.user.first_name
+            self.fields['last_name'].initial = self.instance.user.last_name
+            self.fields['username'].disabled = True
+
+        self.fields['turma'].widget.attrs.update({'class': 'form-select'})
+        for field_name, field in self.fields.items():
+            # Aplica form-control a todos, exceto turma e username (que já tem estilo ou está disabled)
+            if field_name not in ['turma', 'username']:
+                 field.widget.attrs.update({'class': 'form-control'})
+            # Garante que campos obrigatórios tenham o atributo
+            if field.required:
+                field.widget.attrs['required'] = 'required'
+
+    @transaction.atomic
+    def save(self, commit=True):
+        aluno = super().save(commit=commit)
+        user = aluno.user
+        user.first_name = self.cleaned_data['first_name']
+        user.last_name = self.cleaned_data['last_name']
+        if commit:
+            user.save()
+        return aluno
+
+class ProfessorUserUpdateForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ['username', 'first_name', 'last_name']
+        labels = {
+            'username': 'Nome de usuário (Login)',
+            'first_name': 'Primeiro Nome',
+            'last_name': 'Sobrenome',
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['username'].disabled = True
+        for field_name, field in self.fields.items():
+             # Aplica form-control a todos, exceto username (que está disabled)
+            if field_name != 'username':
+                field.widget.attrs.update({'class': 'form-control'})
+            # Garante que campos obrigatórios tenham o atributo
+            if field.required:
+                field.widget.attrs['required'] = 'required'
+

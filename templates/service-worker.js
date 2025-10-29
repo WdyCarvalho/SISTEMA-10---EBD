@@ -1,4 +1,6 @@
+
 {% load static %}
+
 // templates/service-worker.js
 
 const CACHE_NAME = 'ebd-app-cache-v1';

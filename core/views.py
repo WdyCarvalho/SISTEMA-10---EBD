@@ -3,13 +3,20 @@
 from django.http import HttpResponseForbidden
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages # Importe o sistema de mensagens
+from django.contrib.auth.models import User, Group
 from django.contrib.auth.decorators import login_required
 from django.forms import modelformset_factory # Importamos o "criador de super-formulários"
+from django.db import transaction
 from django.db.models import Sum, Avg, Count
 from .models import Turma, Aluno, Chamada, RegistroChamada, User, PerfilProfessor, RegistroChamadaProfessor
-from .forms import RegistroChamadaForm, RegistroChamadaProfessorForm, TurmaForm, ProfessorUserCreationForm, AlunoUserCreationForm, SupervisorUserCreationForm 
+from .forms import RegistroChamadaForm, RegistroChamadaProfessorForm, TurmaForm, ProfessorUserCreationForm, AlunoUserCreationForm, SupervisorUserCreationForm, AlunoUserUpdateForm, ProfessorUserUpdateForm
 from datetime import date # Para pegar a data de hoje
 from .context_processors import permissoes_context # Importe a função que criamos
+
+
+from django.urls import reverse_lazy # Para redirects após deletar
+from django.views.generic import UpdateView, DeleteView # Views genéricas
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin # Para segurança em Class-Based Views
 
 
 @login_required 
@@ -560,3 +567,141 @@ def cadastrar_supervisor(request):
         'form_title': 'Cadastrar Novo Supervisor' 
     }
     return render(request, 'form_generico.html', contexto)
+
+# core/views.py
+# ... (outras views) ...
+
+# --- NOVAS VIEWS (ETAPA 17 - COMPLEMENTO) ---
+
+# Mixin de Segurança para Supervisores em Class-Based Views
+class SupervisorRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
+    def test_func(self):
+        # Reutiliza nossa função de permissão
+        return permissoes_context(self.request)['is_supervisor']
+
+    def handle_no_permission(self):
+        return HttpResponseForbidden("<h1>Acesso Negado</h1><p>Apenas supervisores podem acessar esta página.</p>")
+
+# View para Editar Turma
+class TurmaUpdateView(SupervisorRequiredMixin, UpdateView):
+    model = Turma
+    form_class = TurmaForm # Reutiliza o formulário que já temos
+    template_name = 'form_generico.html' # Reutiliza o template genérico
+    success_url = reverse_lazy('gerenciamento_turmas') # Para onde ir após salvar
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['form_title'] = f'Editar Turma: {self.object.nome}' # Título dinâmico
+        return context
+
+    def form_valid(self, form):
+        messages.success(self.request, f"A turma '{form.instance.nome}' foi atualizada com sucesso!")
+        return super().form_valid(form)
+
+# View para Apagar Turma
+class TurmaDeleteView(SupervisorRequiredMixin, DeleteView):
+    model = Turma
+    template_name = 'confirmar_apagamento.html' # Template de confirmação (vamos criar)
+    success_url = reverse_lazy('gerenciamento_turmas')
+
+    def form_valid(self, form):
+        turma_nome = self.object.nome
+        messages.success(self.request, f"A turma '{turma_nome}' foi apagada com sucesso!")
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['item_nome'] = self.object.nome
+        context['tipo_item'] = 'turma'
+        return context
+
+# core/views.py
+# ...
+
+# View para Editar Aluno
+class AlunoUpdateView(SupervisorRequiredMixin, UpdateView):
+    model = Aluno
+    form_class = AlunoUserUpdateForm # Usa o novo formulário de edição
+    template_name = 'form_generico.html'
+    success_url = reverse_lazy('gerenciamento_alunos')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['form_title'] = f'Editar Aluno: {self.object.nome_completo}'
+        return context
+        
+    def form_valid(self, form):
+        messages.success(self.request, f"Os dados do aluno '{form.instance.nome_completo}' foram atualizados com sucesso!")
+        return super().form_valid(form)
+
+# View para Apagar Aluno (Apaga o Aluno E o User associado)
+class AlunoDeleteView(SupervisorRequiredMixin, DeleteView):
+    model = Aluno
+    template_name = 'confirmar_apagamento.html'
+    success_url = reverse_lazy('gerenciamento_alunos')
+
+    @transaction.atomic
+    def form_valid(self, form):
+        aluno_nome = self.object.nome_completo
+        user_associado = self.object.user # Pega o User antes de apagar o Aluno
+        
+        # Primeiro, apaga o Aluno (que apaga o RegistroChamada via CASCADE)
+        response = super().form_valid(form) 
+        
+        # Depois, apaga o User associado (se existir)
+        if user_associado:
+            user_associado.delete()
+            
+        messages.success(self.request, f"O aluno '{aluno_nome}' e seu usuário foram apagados com sucesso!")
+        return response
+        
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['item_nome'] = self.object.nome_completo
+        context['tipo_item'] = 'aluno (e seu usuário associado)'
+        return context
+
+class ProfessorUpdateView(SupervisorRequiredMixin, UpdateView):
+    model = User
+    form_class = ProfessorUserUpdateForm # Usa o novo form de edição
+    template_name = 'form_generico.html'
+    success_url = reverse_lazy('gerenciamento_professores')
+
+    def get_queryset(self):
+        # Garante que só podemos editar usuários do grupo Professores
+        professores_group = Group.objects.get(name='Professores')
+        return User.objects.filter(groups=professores_group)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['form_title'] = f'Editar Professor: {self.object.username}'
+        return context
+
+    def form_valid(self, form):
+        messages.success(self.request, f"Os dados do professor '{form.instance.username}' foram atualizados com sucesso!")
+        return super().form_valid(form)
+    
+class ProfessorDeleteView(SupervisorRequiredMixin, DeleteView):
+    model = User
+    template_name = 'confirmar_apagamento.html'
+    success_url = reverse_lazy('gerenciamento_professores')
+
+    def get_queryset(self):
+        # Garante que só podemos apagar usuários do grupo Professores
+        professores_group = Group.objects.get(name='Professores')
+        return User.objects.filter(groups=professores_group)
+
+    @transaction.atomic # Garanta que 'transaction' está importado no topo
+    def form_valid(self, form):
+        professor_username = self.object.username
+        # O on_delete=SET_NULL em Turma e CASCADE em PerfilProfessor cuidam das relações
+        response = super().form_valid(form) # Apaga o User
+        messages.success(self.request, f"O professor '{professor_username}' foi apagado com sucesso!")
+        return response
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['item_nome'] = self.object.username
+        context['tipo_item'] = 'professor (o usuário de login)'
+        context['aviso_extra'] = 'As turmas que este professor lecionava ficarão sem professor titular.'
+        return context

@@ -1,40 +1,58 @@
 {% extends 'base.html' %}
 {% block title %}Gerenciamento de Professores{% endblock %}
 {% block content %}
-    <h2>Gerenciamento de Professores</h2>
-
-    <input type="text" id="searchInput" onkeyup="filterTable('searchInput', 'searchableTable')" placeholder="Buscar por professor ou turma..." class="form-control search-box mb-4">
-
-    <table class="table table-hover align-middle" id="searchableTable">
+    <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-4">
+        <h2 class="fw-light mb-0">Gerenciamento de Professores</h2>
+        <a href="{% url 'cadastrar_professor' %}" class="btn btn-success btn-sm">
+            <i class="bi bi-plus-circle-fill me-1"></i> Adicionar Novo Professor
+        </a>
+    </div>
+    <input type="text" id="searchInput" onkeyup="filterTable('searchInput', 'searchableTable')"
+           placeholder="Buscar por professor ou turma..." class="form-control search-box mb-4">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle" id="searchableTable">
         <thead>
-            <tr>
-                <th>Professor</th>
-                <th>Pontos Totais</th>
-                <th>Turmas Lecionadas</th>
-                <th>Ações</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for prof in lista_professores %}
-            <tr>
-                <td>{{ prof.first_name }} {{ prof.last_name }} ({{ prof.username }})</td>
-                <td>{{ prof.perfil_professor.pontos_totais|default:0 }} pts</td>
-                <td>
-                    {% for turma in prof.turmas_lecionadas.all %}
-                        {{ turma.nome }}<br>
-                    {% empty %}
-                        Nenhuma
-                    {% endfor %}
-                </td>
+                <tr>
+                    <th>Professor</th>
+                    <th>Pontos Totais</th>
+                    <th>Turmas Lecionadas</th>
+                    <th class="text-end">Ações</th>
+                    </tr>
+            </thead>
+            <tbody>
+                {% for prof in lista_professores %}
+                <tr>
+                    <td>{{ prof.first_name }} {{ prof.last_name }} <small class="text-muted">({{ prof.username }})</small></td>
+                    <td>{{ prof.perfil_professor.pontos_totais|default:0 }} pts</td>
+                    <td>
+                        {% for turma in prof.turmas_lecionadas.all %}
+                            {{ turma.nome }}<br>
+                        {% empty %}
+                            Nenhuma
+                        {% endfor %}
+                    </td>
 
-                <td style="min-width: 220px;">
-                    <a href="{% url 'relatorio_professor_individual' prof.id %}" class="btn btn-primary btn-sm">
-                        <i class="bi bi-person-lines-fill me-1"></i>
-                        Ver Relatório Individual
-                    </a>
-                </td>
-        </tr>
-        {% endfor %}
-        </tbody>
-    </table>
+                    <td class="text-end" style="min-width: 270px;">
+                        <a href="{% url 'relatorio_professor_individual' prof.id %}" class="btn btn-outline-secondary btn-sm me-2" title="Ver Relatório">
+                            <i class="bi bi-person-lines-fill"></i> Relatório
+                        </a>
+                        <a href="{% url 'editar_professor' prof.id %}" class="btn btn-outline-warning btn-sm me-2" title="Editar">
+                            <i class="bi bi-pencil-fill"></i>
+                        </a>
+                        <form action="{% url 'apagar_professor' prof.id %}" method="post" class="d-inline" onsubmit="return confirm('Tem certeza que deseja apagar o professor {{ prof.username }}? As turmas dele ficarão sem professor.');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-danger btn-sm" title="Apagar">
+                                <i class="bi bi-trash-fill"></i>
+                            </button>
+                        </form>
+                    </td>
+                    </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4">Nenhum professor encontrado no grupo "Professores".</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 {% endblock %}

@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block title %}Confirmar Apagamento{% endblock %}
+
+{% block content %}
+    <h2 class="fw-light border-bottom pb-2 mb-4">Confirmar Apagamento</h2>
+
+    <p class="lead">Tem certeza que deseja apagar {{ tipo_item|default:"o item" }} <strong>"{{ item_nome|default:"este item" }}"</strong>?</p>
+    <p class="text-danger"><i class="bi bi-exclamation-triangle-fill me-1"></i>Esta ação não pode ser desfeita.</p>
+    {% if aviso_extra %}
+
+    <form method="post">
+        {% csrf_token %}
+        <hr class="my-4">
+        <button type="submit" class="btn btn-danger btn-lg">
+            <i class="bi bi-trash-fill me-2"></i> Sim, Apagar
+        </button>
+        <a href="{{ request.META.HTTP_REFERER|default:"/" }}" class="btn btn-outline-secondary btn-lg ms-2">
+            Cancelar
+        </a>
+    </form>
+{% endblock %}
+

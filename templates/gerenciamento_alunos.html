@@ -1,26 +1,46 @@
 {% extends 'base.html' %}
 {% block title %}Gerenciamento de Alunos{% endblock %}
 {% block content %}
-    <h2>Gerenciamento de Alunos</h2>
+    <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-4">
+        <h2 class="fw-light mb-0">Gerenciamento de Alunos</h2>
+        <a href="{% url 'cadastrar_aluno' %}" class="btn btn-success btn-sm">
+            <i class="bi bi-plus-circle-fill me-1"></i> Adicionar Novo Aluno
+        </a>
+    </div>
+    <input type="text" id="searchInput" onkeyup="filterTable('searchInput', 'searchableTable')"
+           placeholder="Buscar por nome do aluno ou turma..." class="form-control search-box mb-4">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle" id="searchableTable">
+        <thead>
+                <tr>
+                    <th>Aluno</th>
+                    <th>Turma</th>
+                    <th class="text-end">Ações</th>
+                    </tr>
+            </thead>
+            <tbody>
+                {% for aluno in lista_todos_alunos %}
+                <tr>
+                    <td>{{ aluno.nome_completo }} <small class="text-muted">({{ aluno.user.username|default:"Sem login" }})</small></td>
+                    <td>{{ aluno.turma.nome|default:"Sem turma" }}</td>
 
-    <input type="text" id="searchInput" onkeyup="filterTable('searchInput', 'searchableTable')" placeholder="Buscar por nome do aluno ou turma..." class="form-control search-box mb-4">
-
-    <table class="table table-hover align-middle" id="searchableTable">
-        <thead> <tr> <th>Aluno</th> <th>Turma</th> <th>Ações</th> </tr> </thead>
-        <tbody>
-            {% for aluno in lista_todos_alunos %}
-            <tr>
-                <td>{{ aluno.nome_completo }}</td>
-                <td>{{ aluno.turma.nome|default:"Sem turma" }}</td>
-
-                <td style="min-width: 220px;">
-                    <a href="{% url 'relatorio_aluno_individual' aluno.id %}" class="btn btn-primary btn-sm">
-                        <i class="bi bi-person-lines-fill me-1"></i>
-                        Ver Relatório Individual
-                    </a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+                    <td class="text-end" style="min-width: 270px;">
+                        <a href="{% url 'relatorio_aluno_individual' aluno.id %}" class="btn btn-outline-secondary btn-sm me-2" title="Ver Relatório">
+                            <i class="bi bi-person-lines-fill"></i> Relatório
+                        </a>
+                        <a href="{% url 'editar_aluno' aluno.id %}" class="btn btn-outline-warning btn-sm me-2" title="Editar">
+                            <i class="bi bi-pencil-fill"></i>
+                        </a>
+                        <form action="{% url 'apagar_aluno' aluno.id %}" method="post" class="d-inline" onsubmit="return confirm('Tem certeza que deseja apagar o aluno {{ aluno.nome_completo }} E SEU USUÁRIO ASSOCIADO? Esta ação não pode ser desfeita.');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-danger btn-sm" title="Apagar">
+                                <i class="bi bi-trash-fill"></i>
+                            </button>
+                        </form>
+                    </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 {% endblock %}

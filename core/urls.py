@@ -48,4 +48,13 @@ urlpatterns = [
     path('service-worker.js', 
          TemplateView.as_view(template_name="service-worker.js", content_type='application/javascript'), 
          name='service-worker.js'),
+
+        
+    path('gerenciamento/turmas/<int:pk>/editar/', views.TurmaUpdateView.as_view(), name='editar_turma'),
+    path('gerenciamento/turmas/<int:pk>/apagar/', views.TurmaDeleteView.as_view(), name='apagar_turma'),
+    path('gerenciamento/alunos/<int:pk>/editar/', views.AlunoUpdateView.as_view(), name='editar_aluno'),
+    path('gerenciamento/alunos/<int:pk>/apagar/', views.AlunoDeleteView.as_view(), name='apagar_aluno'),
+
+    path('gerenciamento/professores/<int:pk>/editar/', views.ProfessorUpdateView.as_view(), name='editar_professor'),
+    path('gerenciamento/professores/<int:pk>/apagar/', views.ProfessorDeleteView.as_view(), name='apagar_professor'),
 ]

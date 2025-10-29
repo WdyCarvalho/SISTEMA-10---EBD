@@ -1,31 +1,55 @@
 {% extends 'base.html' %}
 {% block title %}Gerenciamento de Turmas{% endblock %}
 {% block content %}
-    <h2>Gerenciamento de Turmas</h2>
+   <!-- <h2>Gerenciamento de Turmas</h2>-->
+
+<div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-4">
+        <h2 class="fw-light mb-0">Gerenciamento de Turmas</h2>
+        <a href="{% url 'cadastrar_turma' %}" class="btn btn-success btn-sm">
+            <i class="bi bi-plus-circle-fill me-1"></i> Adicionar Nova Turma
+        </a>
+    </div>
+
+    <input type="text" id="searchInput" onkeyup="filterTable('searchInput', 'searchableTable')"
+           placeholder="Buscar por turma ou professor..." class="form-control search-box mb-4">
+
+    <div class="table-responsive">
+        <table class="table table-hover align-middle" id="searchableTable">
+            <thead>
+                <tr>
+                    <th>Turma</th>
+                    <th>Professor Titular</th>
+                    <th class="text-end">Ações</th> </tr>
+            </thead>
+            <tbody>
+                {% for turma in lista_todas_turmas %}
+                <tr>
+                    <td>{{ turma.nome }}</td>
+                    <td>{{ turma.professor.username|default:"Sem professor" }}</td>
+                    
+                    <td class="text-end" style="min-width: 320px;">
+                        <a href="{% url 'detalhes_turma' turma.id %}" class="btn btn-outline-secondary btn-sm me-2" title="Ver Ranking">
+                            <i class="bi bi-bar-chart-line-fill"></i> Ranking
+                        </a>
+                        <a href="{% url 'pagina_chamada' turma.id %}" class="btn btn-outline-primary btn-sm me-2" title="Fazer Chamada">
+                             <i class="bi bi-check2-square"></i> Chamada
+                        </a>
+                        <a href="{% url 'editar_turma' turma.id %}" class="btn btn-outline-warning btn-sm me-2" title="Editar">
+                            <i class="bi bi-pencil-fill"></i>
+                        </a>
+                        <form action="{% url 'apagar_turma' turma.id %}" method="post" class="d-inline" onsubmit="return confirm('Tem certeza que deseja apagar a turma {{ turma.nome }}? Esta ação não pode ser desfeita.');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-danger btn-sm" title="Apagar">
+                                <i class="bi bi-trash-fill"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
     
 
-    <input type="text" id="searchInput" onkeyup="filterTable('searchInput', 'searchableTable')" placeholder="Buscar por turma ou professor..." class="form-control search-box mb-4">
-
-    <table class="table table-hover align-middle" id="searchableTable">
-
-        <thead> <tr> <th>Turma</th> <th>Professor Titular</th> <th>Ações</th> </tr> </thead>
-        <tbody>
-            {% for turma in lista_todas_turmas %}
-            <tr>
-                <td>{{ turma.nome }}</td>
-                <td>{{ turma.professor.username|default:"Sem professor" }}</td>
-
-            <td style="min-width: 270px;"> <a href="{% url 'detalhes_turma' turma.id %}" class="btn btn-outline-secondary btn-sm me-2">
-                    <i class="bi bi-bar-chart-line-fill me-1"></i>
-                    Ver Ranking
-                </a>
-                <a href="{% url 'pagina_chamada' turma.id %}" class="btn btn-primary btn-sm">
-                    <i class="bi bi-check2-square me-1"></i>
-                    Fazer Chamada
-                </a>
-            </td>
-        </tr>
-        {% endfor %}
-        </tbody>
-    </table>
 {% endblock %}
