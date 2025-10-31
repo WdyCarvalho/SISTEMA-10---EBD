@@ -57,4 +57,7 @@ urlpatterns = [
 
     path('gerenciamento/professores/<int:pk>/editar/', views.ProfessorUpdateView.as_view(), name='editar_professor'),
     path('gerenciamento/professores/<int:pk>/apagar/', views.ProfessorDeleteView.as_view(), name='apagar_professor'),
+
+    path('chamada/<int:pk>/apagar/', views.ChamadaDeleteView.as_view(), name='apagar_chamada'),
+    # END CHANGE
 ]

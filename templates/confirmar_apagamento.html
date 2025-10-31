@@ -6,9 +6,13 @@
     <h2 class="fw-light border-bottom pb-2 mb-4">Confirmar Apagamento</h2>
 
     <p class="lead">Tem certeza que deseja apagar {{ tipo_item|default:"o item" }} <strong>"{{ item_nome|default:"este item" }}"</strong>?</p>
+    
     <p class="text-danger"><i class="bi bi-exclamation-triangle-fill me-1"></i>Esta ação não pode ser desfeita.</p>
-    {% if aviso_extra %}
 
+    {% if aviso_extra %}
+        <p class="text-warning"><i class="bi bi-info-circle-fill me-1"></i>{{ aviso_extra }}</p>
+    
+    {% endif %}
     <form method="post">
         {% csrf_token %}
         <hr class="my-4">
@@ -20,4 +24,3 @@
         </a>
     </form>
 {% endblock %}
-

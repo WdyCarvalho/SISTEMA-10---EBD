@@ -108,4 +108,9 @@
             Salvar Chamada
         </button>
     </form>
+    <div class="text-end mt-4 pt-3 border-top">
+        <a href="{% url 'apagar_chamada' chamada.id %}" class="btn btn-sm btn-outline-danger">
+            <i class="bi bi-trash-fill me-1"></i> Apagar esta Chamada
+        </a>
+    </div>
 {% endblock %}

@@ -132,6 +132,7 @@ def pagina_chamada(request, turma_id):
         'formset_alunos': formset_alunos,
         'form_professor': form_professor, # Pode ser None
         'data_selecionada_str': data_selecionada_str,
+        'chamada': chamada,
     }
     return render(request, 'chamada.html', contexto)
 
@@ -615,9 +616,6 @@ class TurmaDeleteView(SupervisorRequiredMixin, DeleteView):
         context['tipo_item'] = 'turma'
         return context
 
-# core/views.py
-# ...
-
 # View para Editar Aluno
 class AlunoUpdateView(SupervisorRequiredMixin, UpdateView):
     model = Aluno
@@ -705,3 +703,85 @@ class ProfessorDeleteView(SupervisorRequiredMixin, DeleteView):
         context['tipo_item'] = 'professor (o usuário de login)'
         context['aviso_extra'] = 'As turmas que este professor lecionava ficarão sem professor titular.'
         return context
+    
+class ProfessorOwnerOrSupervisorMixin(LoginRequiredMixin, UserPassesTestMixin):
+    """
+    Mixin de segurança que permite acesso a Supervisores OU
+    ao Professor que é "dono" do objeto (através da turma).
+    """
+    def test_func(self):
+        # Pega as permissões do contexto
+        permissores = permissoes_context(self.request)
+
+        # Supervisores sempre têm acesso
+        if permissores['is_supervisor']:
+            return True
+
+        # Pega o objeto (Turma ou Chamada) que está sendo acessado
+        obj = self.get_object()
+
+        # Determina a qual turma o objeto pertence
+        turma_do_objeto = None
+        if isinstance(obj, Turma):
+            turma_do_objeto = obj
+        elif isinstance(obj, Chamada):
+            turma_do_objeto = obj.turma
+
+        # Professores só têm acesso se forem donos da turma
+        if permissores['is_professor'] and turma_do_objeto and turma_do_objeto.professor == self.request.user:
+            return True
+
+        return False
+
+    def handle_no_permission(self):
+        return HttpResponseForbidden("<h1>Acesso Negado</h1><p>Você não tem permissão para gerenciar este item.</p>")
+
+
+class ChamadaDeleteView(ProfessorOwnerOrSupervisorMixin, DeleteView):
+    model = Chamada
+    template_name = 'confirmar_apagamento.html'
+
+    def get_success_url(self):
+        """ Redireciona de volta para a página correta (hub ou dashboard) """
+        if permissoes_context(self.request)['is_supervisor']:
+            # Supervisores voltam para o gerenciamento de turmas
+            return reverse_lazy('gerenciamento_turmas')
+        # Professores voltam para seu dashboard
+        return reverse_lazy('dashboard')
+
+    @transaction.atomic
+    def form_valid(self, form):
+        """
+        Sobrescrevemos o 'form_valid' para recalcular os pontos 
+        ANTES que os registros sejam apagados em cascata.
+        """
+        chamada = self.get_object()
+        chamada_data_str = chamada.data.strftime('%d/%m/%Y')
+
+        # 1. Encontrar todos os Alunos e Professores afetados por esta chamada
+        # Usamos .distinct() para evitar recalcular o mesmo aluno várias vezes
+        alunos_afetados = Aluno.objects.filter(registros_de_chamada__chamada=chamada).distinct()
+        prof_afetado = PerfilProfessor.objects.filter(registros_de_chamada__chamada=chamada).first()
+
+        # 2. Apagar a chamada (Isso apagará todos os Registros em cascata)
+        # O super().form_valid(form) executa a exclusão
+        response = super().form_valid(form)
+
+        # 3. Mandar recalcular os pontos TOTAIS de todos os afetados
+        for aluno in alunos_afetados:
+            aluno.recalcular_pontos_totais()
+
+        if prof_afetado:
+            prof_afetado.recalcular_pontos_totais()
+
+        messages.success(self.request, f"A chamada da turma {chamada.turma.nome} do dia {chamada_data_str} foi apagada com sucesso.")
+        return response
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['item_nome'] = f"Chamada de {self.object.turma.nome} ({self.object.data.strftime('%d/%m/%Y')})"
+        context['tipo_item'] = 'chamada'
+        context['aviso_extra'] = 'Todos os registros de presença e pontos dos alunos e do professor para este dia serão permanentemente apagados.'
+        return context
+
+# END CHANGE
