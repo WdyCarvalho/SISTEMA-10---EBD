@@ -79,38 +79,49 @@
             </div>
 
             <div class="tab-pane fade" id="professor" role="tabpanel" aria-labelledby="professor-tab">
-                {% if professor_titular %}
-                    <h3>Registro do Professor: {{ professor_titular.username }}</h3>
 
-                    <div class="row">
-                        <div class="col-md-6">
-                            {% for field in form_professor %}
-                                <div class="form-check form-switch fs-5 mb-3">
-                                    {{ field }}
-                                    <label class="form-check-label" for="{{ field.id_for_label }}">
-                                        {{ field.label }}
-                                    </label>
-                                </div>
+            {{ formset_professores.management_form }}
+
+            {% if not formset_professores.forms %}
+                <div class="alert alert-warning">
+                    Esta turma não possui professores associados.
+                </div>
+            {% else %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th style="min-width: 200px;">Professor</th>
+                                {% if formset_professores.forms %}
+                                    {% for field in formset_professores.forms.0 %}
+                                        <th class="text-center" style="min-width: 90px;">{{ field.label }}</th>
+                                    {% endfor %}
+                                {% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for form in formset_professores %}
+                                <tr>
+                                    <td>
+                                        {{ form.instance.professor.user.username }}
+                                    </td>
+
+                                    {% for field in form %}
+                                        <td class="text-center">
+                                            <div class="form-check">
+                                                {{ field }}
+                                            </div>
+                                        </td>
+                                    {% endfor %}
+                                </tr>
                             {% endfor %}
-                        </div>
-                    </div>
-                {% else %}
-                    <div class="alert alert-warning">
-                        Esta turma não possui um professor titular associado.
-                    </div>
-                {% endif %}
-            </div>
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
         </div>
-
-        <hr class="mt-4">
-        <button type="submit" class="btn btn-primary btn-lg">
-            <i class="bi bi-save-fill me-2"></i>
-            Salvar Chamada
-        </button>
+        </div> <hr class="mt-4">
+    <button type="submit" class="btn btn-primary btn-lg">Salvar Chamada</button>
     </form>
-    <div class="text-end mt-4 pt-3 border-top">
-        <a href="{% url 'apagar_chamada' chamada.id %}" class="btn btn-sm btn-outline-danger">
-            <i class="bi bi-trash-fill me-1"></i> Apagar esta Chamada
-        </a>
-    </div>
+
 {% endblock %}

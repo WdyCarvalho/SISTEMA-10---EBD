@@ -13,12 +13,12 @@ from django.dispatch import receiver
 
 class Turma(models.Model):
     nome = models.CharField(max_length=100, unique=True)
-    professor = models.ForeignKey(
+    professores = models.ManyToManyField(
         User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='turmas_lecionadas'
+        blank=True, # Uma turma pode, temporariamente, não ter professores
+        related_name='turmas_lecionadas',
+        # Limita as escolhas no Admin/Forms para apenas usuários no grupo 'Professores'
+        limit_choices_to={'groups__name': 'Professores'} 
     )
 
     def __str__(self):
@@ -178,10 +178,10 @@ class RegistroChamadaProfessor(models.Model):
     """
     Armazena os critérios da chamada do professor para um dia específico.
     """
-    chamada = models.OneToOneField(
+    chamada = models.ForeignKey(
         Chamada,
         on_delete=models.CASCADE,
-        related_name='registro_professor'
+        related_name='registros_de_professor' # Nome do related_name mudou
     )
     # O professor que fez a chamada (ligado ao perfil dele)
     professor = models.ForeignKey(
@@ -198,6 +198,11 @@ class RegistroChamadaProfessor(models.Model):
     convidado = models.BooleanField(default=False, verbose_name="Convidado")
 
     pontos_ganhos = models.IntegerField(default=0)
+
+    class Meta:
+        # Garante que não podemos ter dois registros para o
+        # mesmo professor na mesma chamada
+        unique_together = ('chamada', 'professor')
 
     def __str__(self):
         return f"Registro Prof. {self.professor.user.username} - {self.chamada.data}"

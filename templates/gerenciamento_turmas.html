@@ -24,8 +24,18 @@
             <tbody>
                 {% for turma in lista_todas_turmas %}
                 <tr>
+                   
                     <td>{{ turma.nome }}</td>
-                    <td>{{ turma.professor.username|default:"Sem professor" }}</td>
+                    
+                    <td>
+                        {% for prof in turma.professores.all %}
+                            {{ prof.username }}<br>
+                        {% empty %}
+                            <span class="text-muted">Sem professor</span>
+                        {% endfor %}
+                    </td>
+                    <td class="text-end" style="min-width: 320px;">
+                    </td>
                     
                     <td class="text-end" style="min-width: 320px;">
                         <a href="{% url 'detalhes_turma' turma.id %}" class="btn btn-outline-secondary btn-sm me-2" title="Ver Ranking">

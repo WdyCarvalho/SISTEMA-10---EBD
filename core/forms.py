@@ -55,43 +55,47 @@ class RegistroChamadaProfessorForm(forms.ModelForm):
 # =============================================
 # === FORMULÁRIOS DE CADASTRO (ETAPA 17) ===
 # =============================================
+# core/forms.py
+
+# START CHANGE: Substituir TurmaForm
 class TurmaForm(forms.ModelForm):
     """
     Formulário para o Supervisor criar ou editar uma Turma.
+    Atualizado para suportar múltiplos professores.
     """
     class Meta:
         model = Turma
-        fields = ['nome', 'professor']
+        fields = ['nome', 'professores'] # Mude 'professor' para 'professores'
+
+        # Usamos um SelectMultiple (caixa de seleção múltipla)
         widgets = {
             'nome': forms.TextInput(attrs={'placeholder': 'Ex: Jovens, Casais...'}),
-            'professor': forms.Select(attrs={'class': 'form-select'}),
+            'professores': forms.SelectMultiple(attrs={'class': 'form-select', 'size': '5'}),
         }
         labels = {
             'nome': 'Nome da Turma',
-            'professor': 'Professor Titular',
+            'professores': 'Professores da Turma',
         }
         help_texts = {
-            'professor': 'Apenas usuários no grupo "Professores" são listados aqui.'
+            'professores': 'Segure Ctrl (ou Cmd) para selecionar mais de um professor.'
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        
-        # Filtra o dropdown 'professor' para mostrar APENAS
-        # usuários que estão no grupo "Professores".
+
+        # A lógica de filtro agora se aplica a 'professores'
         try:
             professores_group = Group.objects.get(name='Professores')
-            self.fields['professor'].queryset = User.objects.filter(groups=professores_group)
-        except Group.DoesNotExist:
-            # Se o grupo não existir, o dropdown fica vazio
-            self.fields['professor'].queryset = User.objects.none()
+            self.fields['professores'].queryset = User.objects.filter(groups=professores_group)
+        except (Group.DoesNotExist, Exception):
+            self.fields['professores'].queryset = User.objects.none()
 
-        # Adiciona a classe 'form-control' a todos os campos
+        # Adiciona a classe 'form-control'
         for field_name, field in self.fields.items():
-            if not isinstance(field.widget, forms.Select):
+            if not isinstance(field.widget, forms.SelectMultiple):
                  field.widget.attrs.update({'class': 'form-control'})
+# END CHANGE
 
-# ... (TurmaForm e outros forms) ...
 
 class ProfessorUserCreationForm(UserCreationForm):
     """

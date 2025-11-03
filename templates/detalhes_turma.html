@@ -4,33 +4,34 @@
 
 {% block content %}
     <h2 class="fw-light border-bottom pb-2 mb-4">Ranking da Turma: {{ turma.nome }}</h2>
-    <p class="lead text-muted mb-4">
-        Classificação dos alunos desta turma, ordenados por pontuação total.
-    </p>
+
+    {% include '_partials/date_filter_form.html' %}
+
+    <input type="text" id="searchInput" onkeyup="filterTable('searchInput', 'searchableTable')" 
+           placeholder="Buscar por nome do aluno..." class="form-control search-box mb-4">
 
     <div class="table-responsive">
-        <table class="table table-hover align-middle">
+        <table class="table table-hover align-middle" id="searchableTable">
             <thead>
                 <tr>
-                    <th class="text-center" style="width: 50px;">#</th>
+                    <th class="posicao">#</th>
                     <th>Nome do Aluno</th>
-                    <th class="text-end" style="width: 120px;">Pontos</th>
+                    <th class="pontos">Pontos (Período)</th>
                 </tr>
             </thead>
             <tbody>
                 {% for aluno in ranking_alunos_turma %}
-                    <tr>
-                        <td class="text-center fw-bold">{{ forloop.counter }}</td>
-                        <td>{{ aluno.nome_completo }}</td>
-                        <td class="text-end fw-bold">{{ aluno.pontos_totais }} pts</td>
-                    </tr>
+                <tr>
+                    <td class="posicao">{{ forloop.counter }}</td>
+                    <td>{{ aluno.nome_completo }}</td>
+                    <td class="pontos">{{ aluno.pontos_no_periodo }} pts</td>
+                </tr>
                 {% empty %}
-                    <tr>
-                        <td colspan="3">Nenhum aluno encontrado nesta turma ou sem pontuação.</td>
-                    </tr>
+                <tr>
+                    <td colspan="3">Nenhum aluno com pontuação encontrada para este período.</td>
+                </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
-
 {% endblock %}

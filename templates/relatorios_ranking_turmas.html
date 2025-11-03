@@ -3,28 +3,33 @@
 {% block content %}
     <h2>Ranking Geral de Turmas</h2>
 
-    <input type="text" id="searchInput" onkeyup="filterTable('searchInput', 'searchableTable')" placeholder="Buscar por nome da turma..." class="form-control search-box mb-4">
+    {% include '_partials/date_filter_form.html' %}
 
-    <table class="table table-hover align-middle" id="searchableTable">
-        <thead>
-            <tr>
-                <th class="posicao">#</th>
-                <th>Turma</th>
-                <th class="pontos">Pontuação Média</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for turma in ranking_turmas_geral %}
-            <tr>
-                <td class="posicao">{{ forloop.counter }}</td>
-                <td>{{ turma.nome }}</td>
-                <td class="pontos">{{ turma.pontuacao_media|floatformat:2 }} pts</td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="3">Nenhuma turma com pontuação.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <input type="text" id="searchInput" onkeyup="filterTable('searchInput', 'searchableTable')" 
+           placeholder="Buscar por nome da turma..." class="form-control search-box mb-4">
+
+    <div class="table-responsive">
+        <table class="table table-hover align-middle" id="searchableTable">
+            <thead>
+                <tr>
+                    <th class="posicao">#</th>
+                    <th>Turma</th>
+                    <th class="pontos">Pontuação Média (Período)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for turma in ranking_turmas_geral %}
+                <tr>
+                    <td class="posicao">{{ forloop.counter }}</td>
+                    <td>{{ turma.nome }}</td>
+                    <td class="pontos">{{ turma.media_no_periodo|floatformat:2 }} pts</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="3">Nenhuma turma com pontuação encontrada para este período.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 {% endblock %}

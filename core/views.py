@@ -7,7 +7,7 @@ from django.contrib.auth.models import User, Group
 from django.contrib.auth.decorators import login_required
 from django.forms import modelformset_factory # Importamos o "criador de super-formulários"
 from django.db import transaction
-from django.db.models import Sum, Avg, Count
+from django.db.models import Sum, Avg, Count, Q
 from .models import Turma, Aluno, Chamada, RegistroChamada, User, PerfilProfessor, RegistroChamadaProfessor
 from .forms import RegistroChamadaForm, RegistroChamadaProfessorForm, TurmaForm, ProfessorUserCreationForm, AlunoUserCreationForm, SupervisorUserCreationForm, AlunoUserUpdateForm, ProfessorUserUpdateForm
 from datetime import date # Para pegar a data de hoje
@@ -26,7 +26,8 @@ def dashboard(request):
     if not permissores['is_professor']:
         return HttpResponseForbidden("<h1>Acesso Negado</h1><p>Esta página é apenas para professores.</p>")
 
-    turmas_do_professor = Turma.objects.filter(professor=request.user).order_by('nome')
+    turmas_do_professor = Turma.objects.filter(professores=request.user).order_by('nome').distinct()
+
     contexto = {
         'usuario': request.user,
         'turmas': turmas_do_professor,
@@ -34,33 +35,28 @@ def dashboard(request):
     return render(request, 'dashboard.html', contexto)
 
 
-# --- NOSSA NOVA VIEW ---
 # core/views.py
 
+# START CHANGE: Substituir a view 'pagina_chamada' inteira
 @login_required
 def pagina_chamada(request, turma_id):
     """
-    (ETAPA 12 - ATUALIZADA)
+    (ETAPA FINAL - ATUALIZADA)
     Controla a página "Fazer Chamada".
-    Acesso: Supervisor (qualquer turma) ou Professor (apenas sua turma).
-    Permite ao Supervisor pontuar o professor titular da turma.
+    Agora lida com um FormSet de Alunos E um FormSet de Professores.
     """
     permissores = permissoes_context(request)
-    
-    # 1. Busca a Turma
     turma = get_object_or_404(Turma, id=turma_id)
 
-    # --- INÍCIO DA ATUALIZAÇÃO DE SEGURANÇA ---
+    # 1. SEGURANÇA (Já atualizamos na Etapa 3)
     acesso_permitido = False
-    
     if permissores['is_supervisor']:
         acesso_permitido = True
-    elif permissores['is_professor'] and turma.professor == request.user:
+    elif permissores['is_professor'] and request.user in turma.professores.all():
         acesso_permitido = True
-        
+
     if not acesso_permitido:
         return HttpResponseForbidden("<h1>Acesso Negado</h1><p>Você não tem permissão para fazer a chamada desta turma.</p>")
-    # --- FIM DA ATUALIZAÇÃO DE SEGURANÇA ---
 
     # 2. LÓGICA DE DATA (Igual antes)
     data_selecionada_str = request.GET.get('data', date.today().isoformat())
@@ -70,73 +66,77 @@ def pagina_chamada(request, turma_id):
     chamada, _ = Chamada.objects.get_or_create(
         turma=turma, 
         data=data_selecionada,
-        defaults={'criado_por': request.user} # Registra quem criou (o supervisor ou o prof)
+        defaults={'criado_por': request.user}
     )
 
     # 4. GARANTIR REGISTROS DE ALUNOS (Igual antes)
     alunos_da_turma = turma.alunos.all().order_by('nome_completo')
     for aluno in alunos_da_turma:
         RegistroChamada.objects.get_or_create(chamada=chamada, aluno=aluno)
-    
-    # --- 5. ATUALIZAÇÃO: GARANTIR REGISTRO DO PROFESSOR TITULAR ---
-    registro_professor = None
-    form_professor = None
-    professor_titular = turma.professor # Pega o professor associado à turma
-    
-    if professor_titular: # Só faz a chamada do prof se a turma tiver um
+
+    # 5. ATUALIZADO: GARANTIR REGISTROS DOS PROFESSORES (AGORA É UMA LISTA)
+    professores_da_turma = turma.professores.all()
+    for prof_user in professores_da_turma:
         try:
-            # Pega o perfil do professor titular (NÃO do request.user)
-            perfil_professor = professor_titular.perfil_professor 
-            registro_professor, criado = RegistroChamadaProfessor.objects.update_or_create(
-            chamada=chamada,  # Procura o registro pela 'chamada' (que é UNIQUE)
-            defaults={'professor': perfil_professor} # Atualiza o professor se for diferente
-        )
+            perfil_prof = prof_user.perfil_professor
+            RegistroChamadaProfessor.objects.get_or_create(
+                chamada=chamada,
+                professor=perfil_prof
+            )
         except PerfilProfessor.DoesNotExist:
-            professor_titular = None # Zera se o perfil não existir
-    
-    # 6. CRIAR O FORMSET DE ALUNOS (Igual antes)
+            pass # Ignora se o professor não tiver perfil (raro)
+
+    # 6. CRIAR FORMSET DE ALUNOS (Igual antes)
     RegistroChamadaFormSet = modelformset_factory(RegistroChamada, form=RegistroChamadaForm, extra=0)
 
-    # 7. PROCESSAR OS FORMULÁRIOS (SALVAR)
+    # 7. NOVO: CRIAR FORMSET DE PROFESSORES
+    RegistroChamadaProfessorFormSet = modelformset_factory(
+        RegistroChamadaProfessor, 
+        form=RegistroChamadaProfessorForm, 
+        extra=0
+    )
+
+    # 8. PROCESSAR OS FORMULÁRIOS (SALVAR)
     if request.method == 'POST':
+        # Instancia o FormSet de Alunos
         queryset_alunos = RegistroChamada.objects.filter(chamada=chamada)
         formset_alunos = RegistroChamadaFormSet(request.POST, queryset=queryset_alunos, prefix='alunos')
-        
-        # Processa o form do professor apenas se ele existir
-        if professor_titular:
-            form_professor = RegistroChamadaProfessorForm(request.POST, instance=registro_professor, prefix='professor')
-            
-            if formset_alunos.is_valid() and form_professor.is_valid():
-                formset_alunos.save()
-                form_professor.save()
-                return redirect('dashboard' if permissores['is_professor'] else 'relatorios')
-        else:
-            # Se não houver professor, só valida os alunos
-            if formset_alunos.is_valid():
-                formset_alunos.save()
-                return redirect('dashboard' if permissores['is_professor'] else 'relatorios')
-    
-    # 8. EXIBIR OS FORMULÁRIOS (CARREGAMENTO INICIAL)
+
+        # Instancia o FormSet de Professores
+        queryset_professores = RegistroChamadaProfessor.objects.filter(chamada=chamada, professor__user__in=professores_da_turma)
+        formset_professores = RegistroChamadaProfessorFormSet(request.POST, queryset=queryset_professores, prefix='professores')
+
+        # Valida AMBOS
+        if formset_alunos.is_valid() and formset_professores.is_valid():
+            formset_alunos.save()
+            formset_professores.save() # Salva todos os professores
+
+            # Redireciona para o local correto
+            if permissores['is_supervisor']:
+                return redirect('gerenciamento_turmas')
+            else:
+                return redirect('dashboard')
+
+    # 9. EXIBIR OS FORMULÁRIOS (CARREGAMENTO INICIAL)
     else:
+        # FormSet de Alunos
         queryset_alunos = RegistroChamada.objects.filter(chamada=chamada).select_related('aluno').order_by('aluno__nome_completo')
         formset_alunos = RegistroChamadaFormSet(queryset=queryset_alunos, prefix='alunos')
-        
-        # Cria o form do professor apenas se ele existir
-        if professor_titular:
-            form_professor = RegistroChamadaProfessorForm(instance=registro_professor, prefix='professor')
 
-    # 8. ENVIAR TUDO PARA O TEMPLATE
+        # FormSet de Professores
+        queryset_professores = RegistroChamadaProfessor.objects.filter(chamada=chamada, professor__user__in=professores_da_turma).select_related('professor__user').order_by('professor__user__username')
+        formset_professores = RegistroChamadaProfessorFormSet(queryset=queryset_professores, prefix='professores')
+
+    # 10. ENVIAR TUDO PARA O TEMPLATE
     contexto = {
         'turma': turma,
-        'professor_titular': professor_titular, # Envia o prof. da turma para o template
         'formset_alunos': formset_alunos,
-        'form_professor': form_professor, # Pode ser None
+        'formset_professores': formset_professores, # Nova variável (FormSet)
         'data_selecionada_str': data_selecionada_str,
         'chamada': chamada,
     }
     return render(request, 'chamada.html', contexto)
-
-# core/views.py
+# END CHANGE
 
 @login_required
 def pagina_relatorios(request):
@@ -219,39 +219,62 @@ def login_router(request):
 
 # core/views.py
 
+# core/views.py
+
 @login_required
 def detalhes_turma(request, turma_id):
     """
-    (ETAPA 12 - ATUALIZADA)
-    Mostra o ranking de alunos para uma turma.
-    Acesso: Supervisor (qualquer turma) ou Professor (apenas sua turma).
+    Mostra o ranking de alunos para uma turma específica.
+    (Agora com filtro de data).
     """
     permissores = permissoes_context(request)
     turma = get_object_or_404(Turma, id=turma_id)
-    
-    # --- INÍCIO DA ATUALIZAÇÃO DE SEGURANÇA ---
+
+    # --- LÓGICA DE PERMISSÃO (Existente) ---
     acesso_permitido = False
-    
-    # Supervisores podem ver qualquer turma
     if permissores['is_supervisor']:
         acesso_permitido = True
-    
-    # Professores podem ver (apenas) suas próprias turmas
-    elif permissores['is_professor'] and turma.professor == request.user:
+    elif permissores['is_professor'] and request.user in turma.professores.all():
         acesso_permitido = True
-        
-    if not acesso_permitido:
-        return HttpResponseForbidden("<h1>Acesso Negado</h1>Você não tem permissão para ver esta turma.")
-    # --- FIM DA ATUALIZAÇÃO DE SEGURANÇA ---
+    elif permissores['is_aluno'] and request.user.aluno.turma == turma:
+        acesso_permitido = True
 
-    # Se o acesso for permitido, busca os alunos
-    ranking_alunos_turma = Aluno.objects.filter(turma=turma).order_by('-pontos_totais')
-    
+    if not acesso_permitido:
+        return HttpResponseForbidden("<h1>Acesso Negado</h1><p>Você não tem permissão para ver esta turma.</p>")
+    # --- FIM DA LÓGICA DE PERMISSÃO ---
+
+    # --- LÓGICA DE FILTRO DE DATA (Nova) ---
+    data_inicio = request.GET.get('data_inicio')
+    data_fim = request.GET.get('data_fim')
+
+    date_filter = Q()
+    if data_inicio:
+        date_filter &= Q(registros_de_chamada__chamada__data__gte=data_inicio)
+    if data_fim:
+        date_filter &= Q(registros_de_chamada__chamada__data__lte=data_fim)
+    # --- FIM DA LÓGICA DE FILTRO ---
+
+    # A consulta agora filtra pela turma E calcula os pontos no período
+    ranking_alunos_turma = Aluno.objects.filter(
+        turma=turma # 1. Filtra apenas alunos desta turma
+    ).annotate(
+        pontos_no_periodo=Sum( # 2. Calcula os pontos no período
+            'registros_de_chamada__pontos_ganhos',
+            filter=date_filter
+        )
+    ).filter(
+        pontos_no_periodo__gt=0 # 3. Remove alunos sem pontos no período
+    ).order_by(
+        '-pontos_no_periodo' # 4. Ordena
+    )
+
     contexto = {
         'turma': turma,
         'ranking_alunos_turma': ranking_alunos_turma,
+        'data_inicio': data_inicio,
+        'data_fim': data_fim,
     }
-    
+
     return render(request, 'detalhes_turma.html', contexto)
 
 
@@ -326,41 +349,129 @@ def relatorio_aluno_individual(request, aluno_id):
 # ETAPA 13: NOVAS VIEWS DOS CARDS DO SUPERVISOR
 # -----------------------------------------------------------------
 
+# core/views.py
+
 @login_required
 def relatorio_ranking_alunos(request):
-    """Página 1: Mostra o Ranking Geral de Alunos."""
+    """Página 1: Mostra o Ranking Geral de Alunos (Agora com filtro de data)."""
     permissores = permissoes_context(request)
     if not permissores['is_supervisor']:
         return HttpResponseForbidden("<h1>Acesso Negado</h1><p>Apenas supervisores podem ver este relatório.</p>")
 
-    ranking_alunos_geral = Aluno.objects.all().order_by('-pontos_totais')[:20]
-    contexto = {'ranking_alunos_geral': ranking_alunos_geral}
+    # --- LÓGICA DE FILTRO DE DATA ---
+    data_inicio = request.GET.get('data_inicio')
+    data_fim = request.GET.get('data_fim')
+
+    # Cria um filtro de data dinâmico
+    date_filter = Q()
+    if data_inicio:
+        date_filter &= Q(registros_de_chamada__chamada__data__gte=data_inicio)
+    if data_fim:
+        date_filter &= Q(registros_de_chamada__chamada__data__lte=data_fim)
+    # --- FIM DA LÓGICA DE FILTRO ---
+
+    # A consulta agora é dinâmica:
+    # 1. Anota (cria) um novo campo 'pontos_no_periodo'
+    # 2. Soma os 'pontos_ganhos' APENAS dos registros que passam no 'date_filter'
+    # 3. Filtra (remove) alunos que tiveram 0 ou menos pontos no período
+    # 4. Ordena pelo novo campo
+    ranking_alunos_geral = Aluno.objects.annotate(
+        pontos_no_periodo=Sum(
+            'registros_de_chamada__pontos_ganhos', 
+            filter=date_filter
+        )
+    ).filter(
+        pontos_no_periodo__gt=0
+    ).order_by(
+        '-pontos_no_periodo'
+    )[:20] # Pega os 20 primeiros do período
+
+    contexto = {
+        'ranking_alunos_geral': ranking_alunos_geral,
+        'data_inicio': data_inicio, # Passa as datas para o template
+        'data_fim': data_fim,       # Passa as datas para o template
+    }
     return render(request, 'relatorios_ranking_alunos.html', contexto)
+
+# core/views.py
 
 @login_required
 def relatorio_ranking_turmas(request):
-    """Página 2: Mostra o Ranking Geral de Turmas."""
+    """Página 2: Mostra o Ranking Geral de Turmas (Agora com filtro de data)."""
     permissores = permissoes_context(request)
     if not permissores['is_supervisor']:
         return HttpResponseForbidden("<h1>Acesso Negado</h1><p>Apenas supervisores podem ver este relatório.</p>")
 
+    # --- LÓGICA DE FILTRO DE DATA ---
+    data_inicio = request.GET.get('data_inicio')
+    data_fim = request.GET.get('data_fim')
+
+    # Filtro de data para os registros DOS ALUNOS
+    date_filter = Q()
+    if data_inicio:
+        date_filter &= Q(alunos__registros_de_chamada__chamada__data__gte=data_inicio)
+    if data_fim:
+        date_filter &= Q(alunos__registros_de_chamada__chamada__data__lte=data_fim)
+    # --- FIM DA LÓGICA DE FILTRO ---
+
+    # A consulta agora calcula a MÉDIA dos pontos ganhos
+    # pelos alunos de cada turma, APENAS no período filtrado.
     ranking_turmas_geral = Turma.objects.annotate(
-        pontuacao_media=Avg('alunos__pontos_totais')
-    ).filter(pontuacao_media__gt=0).order_by('-pontuacao_media')
-    contexto = {'ranking_turmas_geral': ranking_turmas_geral}
+        media_no_periodo=Avg(
+            'alunos__registros_de_chamada__pontos_ganhos',
+            filter=date_filter
+        )
+    ).filter(
+        media_no_periodo__gt=0 # Filtra turmas com média 0 no período
+    ).order_by(
+        '-media_no_periodo' # Ordena pela maior média
+    )
+
+    contexto = {
+        'ranking_turmas_geral': ranking_turmas_geral,
+        'data_inicio': data_inicio,
+        'data_fim': data_fim,
+    }
     return render(request, 'relatorios_ranking_turmas.html', contexto)
+
+# core/views.py
 
 @login_required
 def relatorio_ranking_professores(request):
-    """Página 3: Mostra o Ranking Geral de Professores."""
+    """Página 3: Mostra o Ranking Geral de Professores (Agora com filtro de data)."""
     permissores = permissoes_context(request)
     if not permissores['is_supervisor']:
         return HttpResponseForbidden("<h1>Acesso Negado</h1><p>Apenas supervisores podem ver este relatório.</p>")
 
-    ranking_professores = PerfilProfessor.objects.select_related('user').filter(
-        pontos_totais__gt=0
-    ).order_by('-pontos_totais')
-    contexto = {'ranking_professores': ranking_professores}
+    # --- LÓGICA DE FILTRO DE DATA ---
+    data_inicio = request.GET.get('data_inicio')
+    data_fim = request.GET.get('data_fim')
+
+    # Filtro de data para os registros DO PROFESSOR
+    date_filter = Q()
+    if data_inicio:
+        date_filter &= Q(registros_de_chamada__chamada__data__gte=data_inicio)
+    if data_fim:
+        date_filter &= Q(registros_de_chamada__chamada__data__lte=data_fim)
+    # --- FIM DA LÓGICA DE FILTRO ---
+
+    # A consulta agora soma os pontos do professor APENAS no período filtrado.
+    ranking_professores = PerfilProfessor.objects.annotate(
+        pontos_no_periodo=Sum(
+            'registros_de_chamada__pontos_ganhos',
+            filter=date_filter
+        )
+    ).filter(
+        pontos_no_periodo__gt=0 # Filtra professores com 0 pontos no período
+    ).order_by(
+        '-pontos_no_periodo' # Ordena pelos pontos no período
+    ).select_related('user') # Otimiza a busca pelo nome do usuário
+
+    contexto = {
+        'ranking_professores': ranking_professores,
+        'data_inicio': data_inicio,
+        'data_fim': data_fim,
+    }
     return render(request, 'relatorios_ranking_professores.html', contexto)
 
 @login_required
@@ -370,7 +481,7 @@ def gerenciamento_turmas(request):
     if not permissores['is_supervisor']:
         return HttpResponseForbidden("<h1>Acesso Negado</h1><p>Apenas supervisores podem ver este relatório.</p>")
 
-    lista_todas_turmas = Turma.objects.select_related('professor').all().order_by('nome')
+    lista_todas_turmas = Turma.objects.prefetch_related('professores').order_by('nome')
     contexto = {'lista_todas_turmas': lista_todas_turmas}
     return render(request, 'gerenciamento_turmas.html', contexto)
 
@@ -728,7 +839,7 @@ class ProfessorOwnerOrSupervisorMixin(LoginRequiredMixin, UserPassesTestMixin):
             turma_do_objeto = obj.turma
 
         # Professores só têm acesso se forem donos da turma
-        if permissores['is_professor'] and turma_do_objeto and turma_do_objeto.professor == self.request.user:
+        if permissores['is_professor'] and turma_do_objeto and self.request.user in turma_do_objeto.professores.all():
             return True
 
         return False

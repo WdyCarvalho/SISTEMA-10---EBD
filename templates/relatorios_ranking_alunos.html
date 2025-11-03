@@ -2,32 +2,36 @@
 {% block title %}Ranking de Alunos{% endblock %}
 {% block content %}
     <h2>Ranking Geral de Alunos (Top 20)</h2>
-     
-      
-    <input type="text" id="searchInput" onkeyup="filterTable('searchInput', 'searchableTable')" placeholder="Buscar por nome, turma..." class="form-control search-box mb-4">
 
-    <table class="table table-hover align-middle" id="searchableTable">
-        <thead>
-            <tr>
-                <th class="posicao">#</th>
-                <th>Aluno</th>
-                <th>Turma</th>
-                <th class="pontos">Pontos</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for aluno in ranking_alunos_geral %}
-            <tr>
-                <td class="posicao">{{ forloop.counter }}</td>
-                <td>{{ aluno.nome_completo }}</td>
-                <td>{% if aluno.turma %}{{ aluno.turma.nome }}{% else %}(Sem turma){% endif %}</td>
-                <td class="pontos">{{ aluno.pontos_totais }} pts</td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="4">Nenhum aluno com pontuação.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    {% include '_partials/date_filter_form.html' %}
+
+    <input type="text" id="searchInput" onkeyup="filterTable('searchInput', 'searchableTable')" 
+           placeholder="Buscar por nome, turma..." class="form-control search-box mb-4">
+
+    <div class="table-responsive">
+        <table class="table table-hover align-middle" id="searchableTable">
+            <thead>
+                <tr>
+                    <th class="posicao">#</th>
+                    <th>Aluno</th>
+                    <th>Turma</th>
+                    <th class="pontos">Pontos (Período)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for aluno in ranking_alunos_geral %}
+                <tr>
+                    <td class="posicao">{{ forloop.counter }}</td>
+                    <td>{{ aluno.nome_completo }}</td>
+                    <td>{% if aluno.turma %}{{ aluno.turma.nome }}{% else %}(Sem turma){% endif %}</td>
+                    <td class="pontos">{{ aluno.pontos_no_periodo }} pts</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4">Nenhum aluno com pontuação encontrada para este período.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 {% endblock %}

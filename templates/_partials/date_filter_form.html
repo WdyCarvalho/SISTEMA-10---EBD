@@ -1,0 +1,19 @@
+<form method="get" action="" class="mb-4 p-3 border rounded" style="background-color: #fcfcfc;">
+    <div class="row g-3 align-items-center">
+        <div class="col-md-5">
+            <label for="id_data_inicio" class="form-label fw-bold">Data Inicial:</label>
+            <input type="date" name="data_inicio" id="id_data_inicio" 
+                   value="{{ data_inicio|default:'' }}" class="form-control">
+        </div>
+        <div class="col-md-5">
+            <label for="id_data_fim" class="form-label fw-bold">Data Final:</label>
+            <input type="date" name="data_fim" id="id_data_fim" 
+                   value="{{ data_fim|default:'' }}" class="form-control">
+        </div>
+        <div class="col-md-2 d-grid" style="margin-top: 2.2rem;">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-search me-1"></i> Filtrar
+            </button>
+        </div>
+    </div>
+</form>
